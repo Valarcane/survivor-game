@@ -34,9 +34,8 @@
     }
 
     canvas {
-      width: min(100vw, 1200px);
-      height: calc(min(100vw, 1200px) * 0.6666667);
-      max-height: 100vh;
+      width: 100vw;
+      height: 100vh;
       border: 2px solid #264d2d;
       background: var(--bg);
       image-rendering: pixelated;
@@ -342,8 +341,8 @@
 
     #touchJoystick {
       position: absolute;
-      left: 18px;
-      bottom: 18px;
+      left: calc(12px + env(safe-area-inset-left));
+      bottom: calc(12px + env(safe-area-inset-bottom));
       width: 132px;
       height: 132px;
       border-radius: 50%;
@@ -544,8 +543,8 @@
       const loadingBarEl = document.getElementById("loadingBar");
       const loadingPercentEl = document.getElementById("loadingPercent");
 
-      const W = canvas.width;
-      const H = canvas.height;
+      let W = canvas.width;
+      let H = canvas.height;
 
       const SUPABASE_URL = "https://sumcnktydzdmzbhepqpw.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_FZyBwmrWTrGb3AV5h_Aslg_2W95nc-r";
@@ -564,6 +563,7 @@
       let touchMoveX = 0;
       let touchMoveY = 0;
       let touchJoystickPointerId = null;
+      let fullscreenAttempted = false;
 
       const keys = new Set();
       const movementKeys = new Set([
@@ -613,6 +613,7 @@
       function setupTouchJoystick() {
         touchJoystickEl.addEventListener("pointerdown", (e) => {
           if (touchJoystickPointerId !== null) return;
+          requestFullscreenIfPossible();
           touchJoystickPointerId = e.pointerId;
           touchJoystickEl.setPointerCapture(e.pointerId);
           updateTouchVectorFromClient(e.clientX, e.clientY);
@@ -633,6 +634,32 @@
         };
         touchJoystickEl.addEventListener("pointerup", clearPointer, { passive: false });
         touchJoystickEl.addEventListener("pointercancel", clearPointer, { passive: false });
+      }
+
+      function resizeCanvasToViewport() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const nextW = Math.max(1, Math.floor(window.innerWidth * dpr));
+        const nextH = Math.max(1, Math.floor(window.innerHeight * dpr));
+        if (canvas.width !== nextW || canvas.height !== nextH) {
+          canvas.width = nextW;
+          canvas.height = nextH;
+          W = nextW;
+          H = nextH;
+          ctx.imageSmoothingEnabled = false;
+        }
+      }
+
+      async function requestFullscreenIfPossible() {
+        if (fullscreenAttempted) return;
+        fullscreenAttempted = true;
+        const el = document.documentElement;
+        if (!document.fullscreenElement && el.requestFullscreen) {
+          try {
+            await el.requestFullscreen();
+          } catch (_) {
+            // Ignore rejected requests (browser policy/user choice).
+          }
+        }
       }
 
       const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -2742,6 +2769,7 @@
       });
       startGameBtn.addEventListener("click", () => {
         if (!unlockedCharacters[selectedCharacterId]) return;
+        requestFullscreenIfPossible();
         ensureAudio();
         resetGame();
       });
@@ -2814,6 +2842,7 @@
       });
       startLobbyRunBtn.addEventListener("click", async () => {
         if (!supabase || !lobbyId || !isLobbyHost) return;
+        requestFullscreenIfPossible();
         const { data: players } = await supabase.from("lobby_players").select("is_ready").eq("lobby_id", lobbyId);
         if (!players || players.length === 0 || players.some((p) => !p.is_ready)) {
           setLobbyStatus("All players must be ready.", true);
@@ -3160,6 +3189,10 @@
       });
 
       playerId = getOrCreatePlayerId();
+      resizeCanvasToViewport();
+      window.addEventListener("resize", resizeCanvasToViewport);
+      window.addEventListener("orientationchange", resizeCanvasToViewport);
+      document.addEventListener("fullscreenchange", resizeCanvasToViewport);
       setupTouchJoystick();
       updateJoystickKnob();
       renderCharacterMenu();
