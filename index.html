@@ -546,8 +546,10 @@
       const MAX_LOBBY_PLAYERS = 3;
       const PLAYER_ID_KEY = "vsPlayerIdV1";
       const PLAYER_NAME_KEY = "vsPlayerNameV1";
-      const SECRET_CHARACTER_KEY = "vsSecretCharacterUnlockedV1";
+      const SECRET_CHARACTER_KEY = "vsShadowbornUnlockedV2";
+      const UNLOCK_ALL_CHARACTERS_KEY = "vsAllCharactersUnlockedV2";
       const SECRET_CHARACTER_CODE = "AABBA";
+      const UNLOCK_ALL_CODE = "LEVELUP";
       let supabase = null;
       let lobbySub = null;
       let lobbyId = null;
@@ -758,8 +760,11 @@
         { id: "shadowborn", name: "Shadowborn", description: "Secret survivor with custom starting weapon", hp: 108, speed: 255, damage: 22, fireInterval: 0.3, range: 600, precision: 1.15, startingWeapon: "Pistol", color: "#a76bff", hiddenUntilUnlocked: true }
       ];
 
-      if (localStorage.getItem(SECRET_CHARACTER_KEY) === "1") {
+      if (localStorage.getItem(SECRET_CHARACTER_KEY) === "1" || localStorage.getItem(UNLOCK_ALL_CHARACTERS_KEY) === "1") {
         unlockedCharacters.shadowborn = true;
+      }
+      if (localStorage.getItem(UNLOCK_ALL_CHARACTERS_KEY) === "1") {
+        for (const c of characterCatalog) unlockedCharacters[c.id] = true;
       }
 
       const weaponCatalog = [
@@ -1061,8 +1066,7 @@
           });
         }
         for (const weaponKey of getOwnedWeaponKeys()) {
-          const ws = getWeaponStats(weaponKey);
-          if (!ws) continue;
+          if (!getWeaponStats(weaponKey)) continue;
           for (const t of weaponUpgradeTemplates) {
             if ((weaponKey === "sword" || weaponKey === "magicBook") && (t.id === "multishot" || t.id === "projSpeed")) continue;
             options.push({
@@ -1070,8 +1074,15 @@
               targetKey: weaponKey,
               name: t.name,
               icon: t.icon || "UP",
-              describeWithRarity: (rarity) => t.describeWithRarity(ws, rarity.multiplier, rarity.id),
-              applyWithRarity: (rarity) => t.applyWithRarity(ws, rarity.multiplier, rarity.id)
+              describeWithRarity: (rarity) => {
+                const targetStats = getWeaponStats(weaponKey);
+                return targetStats ? t.describeWithRarity(targetStats, rarity.multiplier, rarity.id) : "";
+              },
+              applyWithRarity: (rarity) => {
+                const targetStats = getWeaponStats(weaponKey);
+                if (!targetStats) return;
+                t.applyWithRarity(targetStats, rarity.multiplier, rarity.id);
+              }
             });
           }
         }
@@ -1320,6 +1331,15 @@
       function tryUnlockSecretCode(rawCode) {
         const code = (rawCode || "").trim().toUpperCase();
         if (!code) return;
+        if (code === UNLOCK_ALL_CODE) {
+          for (const c of characterCatalog) {
+            unlockedCharacters[c.id] = true;
+          }
+          localStorage.setItem(UNLOCK_ALL_CHARACTERS_KEY, "1");
+          alert("Code accepted. All characters unlocked!");
+          renderCharacterMenu();
+          return;
+        }
         if (code !== SECRET_CHARACTER_CODE) {
           alert("Invalid code.");
           return;
@@ -1720,12 +1740,24 @@
           player.weaponTimers.sword += dt;
           if (player.weaponTimers.sword >= stats.fireInterval) {
             player.weaponTimers.sword = 0;
-            const swordRange = stats.range * getWeaponAoeScale(stats);
-            for (const e of enemies.slice()) {
-              if (dist2(player.x, player.y, e.x, e.y) <= swordRange * swordRange) {
-                const crit = rollCrit("sword", stats.damage);
-                damageEnemy(e, crit.damage, e.x, e.y, crit.isCrit);
-              }
+            const dir = getShotDirToNearest(stats.range * 2.2);
+            if (dir) {
+              const squareSpeed = 420;
+              // Sword projectile travel now scales with sword range upgrades.
+              const slashTravel = Math.max(160, stats.range * 1.9);
+              const slashLife = slashTravel / squareSpeed;
+              projectiles.push({
+                x: player.x,
+                y: player.y,
+                vx: dir.x * squareSpeed,
+                vy: dir.y * squareSpeed,
+                r: scaleProjectileRadius(8, stats),
+                damage: stats.damage * 0.9,
+                life: slashLife,
+                kind: "swordSquare",
+                weaponKey: "sword",
+                pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+              });
             }
           }
           }
@@ -1769,7 +1801,8 @@
         if (player.level % 4 === 0) {
           player.maxEnemies += 5;
         }
-        player.xp = 0;
+        // Preserve overflow XP so large pickups/magnet chains are not lost.
+        player.xp = Math.max(0, player.xp - player.xpToNext);
         player.xpToNext = Math.floor(player.xpToNext * 1.28 + 3);
         spawnParticles(player.x, player.y, "#74a6ff", 24, 170, 0.6);
         spawnPulse(player.x, player.y, "rgba(116,166,255,0.9)", 90, 0.55);
@@ -2339,6 +2372,10 @@
             ctx.fillStyle = "#d57dff";
             ctx.shadowColor = "rgba(213, 125, 255, 0.95)";
             ctx.shadowBlur = 16;
+          } else if (p.kind === "swordSquare") {
+            ctx.fillStyle = "#8ff3ff";
+            ctx.shadowColor = "rgba(143, 243, 255, 0.98)";
+            ctx.shadowBlur = 14;
           } else if (p.kind === "shotgun") {
             ctx.fillStyle = "#fff39f";
             ctx.shadowColor = "rgba(255, 243, 159, 0.95)";
@@ -2348,9 +2385,22 @@
             ctx.shadowColor = "rgba(255, 223, 92, 0.95)";
             ctx.shadowBlur = 14;
           }
-          ctx.beginPath();
-          ctx.ellipse(s.x, s.y, p.r * 1.05, p.r * 0.82, 0, 0, Math.PI * 2);
-          ctx.fill();
+          if (p.kind === "swordSquare") {
+            // Keep slash orientation stable in screen space (perpendicular to travel).
+            const ahead = toIso(p.x + p.vx * 0.03, p.y + p.vy * 0.03, groundZ + 10);
+            const screenDx = ahead.x - s.x;
+            const screenDy = ahead.y - s.y;
+            const angle = Math.atan2(screenDy, screenDx) + Math.PI / 2;
+            const width = p.r * 4.4;
+            const height = p.r * 1.05;
+            ctx.translate(s.x, s.y);
+            ctx.rotate(angle);
+            ctx.fillRect(-width / 2, -height / 2, width, height);
+          } else {
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, p.r * 1.05, p.r * 0.82, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
           ctx.restore();
         }
       }
