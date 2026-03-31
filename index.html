@@ -525,6 +525,8 @@
       let playerId = "";
       let localReady = false;
       let isLobbyHost = false;
+      let remotePlayers = new Map();
+      let positionBroadcastTimer = 0;
 
       const keys = new Set();
       const movementKeys = new Set([
@@ -1231,6 +1233,8 @@
         particles = [];
         pulses = [];
         cages = [];
+        remotePlayers.clear();
+        positionBroadcastTimer = 0;
         camX = player.x;
         camY = player.y;
         camYaw = 0;
@@ -1797,6 +1801,7 @@
         camY = player.y;
         if (keys.has("q") || keys.has("Q")) camYaw -= dt * 1.2;
         if (keys.has("e") || keys.has("E")) camYaw += dt * 1.2;
+        broadcastLocalPosition(dt);
 
         for (let i = enemies.length - 1; i >= 0; i--) {
           const e = enemies[i];
@@ -2135,6 +2140,24 @@
         ctx.arc(p.x - 5, p.y - 3, 2.2, 0, Math.PI * 2);
         ctx.arc(p.x + 5, p.y - 3, 2.2, 0, Math.PI * 2);
         ctx.fill();
+      }
+
+      function drawRemotePlayer(remote) {
+        const groundZ = getTerrainHeight(remote.x, remote.y);
+        const base = toIso(remote.x, remote.y, groundZ);
+        const p = toIso(remote.x, remote.y, groundZ + 18);
+        drawShadow(base.x, base.y, 10, 5);
+
+        ctx.save();
+        ctx.fillStyle = "#46c7ff";
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, 10, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "12px monospace";
+        const label = (remote.name || "Player").slice(0, 16);
+        ctx.fillText(label, p.x - Math.max(0, label.length * 3), p.y - 14);
+        ctx.restore();
       }
 
       function drawEnemy(e) {
@@ -2511,6 +2534,15 @@
             draw: () => drawEnemy(e)
           });
         }
+        const nowMs = performance.now();
+        for (const [id, rp] of remotePlayers) {
+          if (!rp || id === playerId) continue;
+          if (nowMs - (rp.t || 0) > 5000) continue;
+          drawables.push({
+            key: toIso(rp.x, rp.y, getTerrainHeight(rp.x, rp.y)).y,
+            draw: () => drawRemotePlayer(rp)
+          });
+        }
         drawables.push({
           key: toIso(player.x, player.y, getTerrainHeight(player.x, player.y)).y,
           draw: () => drawPlayer()
@@ -2554,6 +2586,23 @@
         update(dt);
         render();
         requestAnimationFrame(loop);
+      }
+
+      function broadcastLocalPosition(dt) {
+        if (!lobbySub || !lobbyId || !gameStarted || !playerId) return;
+        positionBroadcastTimer += dt;
+        if (positionBroadcastTimer < 0.1) return;
+        positionBroadcastTimer = 0;
+        lobbySub.send({
+          type: "broadcast",
+          event: "player_pos",
+          payload: {
+            player_id: playerId,
+            name: getPlayerName(),
+            x: Math.round(player.x),
+            y: Math.round(player.y)
+          }
+        });
       }
 
       restartBtn.addEventListener("click", () => {
@@ -2770,6 +2819,8 @@
         lobbyCode = "";
         isLobbyHost = false;
         localReady = false;
+        remotePlayers.clear();
+        positionBroadcastTimer = 0;
         renderLobbyPlayers([]);
         showLobbyPanel(false);
         if (!silent) setLobbyStatus("Left lobby.");
@@ -2820,6 +2871,15 @@
           })
           .on("postgres_changes", { event: "*", schema: "public", table: "lobby_players", filter: `lobby_id=eq.${lobbyId}` }, () => {
             refreshLobbyState();
+          })
+          .on("broadcast", { event: "player_pos" }, ({ payload }) => {
+            if (!payload || !payload.player_id || payload.player_id === playerId) return;
+            remotePlayers.set(payload.player_id, {
+              x: Number(payload.x) || 0,
+              y: Number(payload.y) || 0,
+              name: payload.name || "Player",
+              t: performance.now()
+            });
           })
           .subscribe();
       }
