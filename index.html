@@ -388,7 +388,7 @@
           <p>Choose what to do</p>
           <button id="startRunBtn">Single Player</button>
           <button id="openMultiplayerBtn">Multiplayer</button>
-          <button id="openCodeEntryBtn">Enter Secret Code</button>
+          <button id="openCodeEntryBtn">Ingresar Codigo</button>
           <button id="openOptionsBtn">Options</button>
         </div>
         <div id="menuCharacters">
@@ -407,6 +407,7 @@
               <option value="sword">Sword</option>
             </select>
           </div>
+          <button id="openCodeEntryBtnCharacters">Ingresar Codigo</button>
           <button id="startGameBtn">Begin Run</button>
           <button id="backToHomeBtn">Back</button>
         </div>
@@ -511,6 +512,7 @@
       const startRunBtn = document.getElementById("startRunBtn");
       const openMultiplayerBtn = document.getElementById("openMultiplayerBtn");
       const openCodeEntryBtn = document.getElementById("openCodeEntryBtn");
+      const openCodeEntryBtnCharacters = document.getElementById("openCodeEntryBtnCharacters");
       const openOptionsBtn = document.getElementById("openOptionsBtn");
       const backToHomeBtn = document.getElementById("backToHomeBtn");
       const toggleSfxBtn = document.getElementById("toggleSfxBtn");
@@ -722,7 +724,7 @@
         return { x: camX - span * 0.65 - margin, y: camY + (Math.random() - 0.5) * span };
       }
 
-      let player, enemies, projectiles, gems, drops, damageTexts, chests, orbitProjectiles, particles, pulses, cages;
+      let player, enemies, projectiles, gems, drops, damageTexts, chests, orbitProjectiles, particles, pulses, cages, flaskClouds;
       let gameStarted = false;
       let elapsed = 0;
       let spawnTimer = 0;
@@ -940,6 +942,16 @@
             const amount = +(0.25 * mul).toFixed(2);
             s.critDamageModifier += amount;
           }
+        },
+        {
+          id: "aoe",
+          name: "AOE",
+          icon: "AO",
+          describeWithRarity: (_s, mul) => `+${(0.14 * mul).toFixed(2)} area size`,
+          applyWithRarity: (s, mul) => {
+            const amount = +(0.14 * mul).toFixed(2);
+            s.aoe = Math.min(3.2, (s.aoe || 1) + amount);
+          }
         }
       ];
 
@@ -1030,6 +1042,7 @@
           PS: "➹",
           MS: "✹",
           CR: "✧",
+          AO: "◍",
           UP: "⬢"
         };
         return map[iconKey] || "⬢";
@@ -1180,7 +1193,7 @@
           const s = getWeaponStats(w);
           const icon = getWeaponIcon(w);
           if (!s) return `<li><span class="inv-icon">${getIconGlyph(icon)}</span><strong>${getWeaponLabel(w)}</strong></li>`;
-          return `<li><span class="inv-icon">${getIconGlyph(icon)}</span><strong>${getWeaponLabel(w)}</strong>: dmg ${Math.round(s.damage)}, fire ${s.fireInterval.toFixed(2)}s, range ${Math.floor(s.range)}, speed ${Math.round(s.projectileSpeed)}, multishot ${s.multishot}, pierce ${s.piercing}, crit x${s.critDamageModifier.toFixed(2)}</li>`;
+          return `<li><span class="inv-icon">${getIconGlyph(icon)}</span><strong>${getWeaponLabel(w)}</strong>: dmg ${Math.round(s.damage)}, fire ${s.fireInterval.toFixed(2)}s, range ${Math.floor(s.range)}, speed ${Math.round(s.projectileSpeed)}, multishot ${s.multishot}, pierce ${s.piercing}, AOE x${(s.aoe || 1).toFixed(2)}, crit x${s.critDamageModifier.toFixed(2)}</li>`;
         }).join("");
         const upgradeLines = upgradeRows.length
           ? upgradeRows.map((u) => `<li><span class="inv-icon">${getIconGlyph(u.icon || "UP")}</span>${u.name} x${u.count}</li>`).join("")
@@ -1231,13 +1244,13 @@
           color: chosen.color,
           baseWeapon: startWeapon,
           weaponStats: {
-            Pistol: { damage: 20, fireInterval: 0.28, range: 520, projectileSpeed: 520, multishot: 1, critDamageModifier: 1.75, piercing: 0 },
-            Sniper: { damage: 34, fireInterval: 0.62, range: 980, projectileSpeed: 620, multishot: 1, critDamageModifier: 2.3, piercing: 2 },
-            explosiveCannon: { damage: 38, fireInterval: 1.2, range: 650, projectileSpeed: 320, multishot: 1, critDamageModifier: 1.9, piercing: 0 },
-            shotgun: { damage: 24, fireInterval: 0.95, range: 460, projectileSpeed: 460, multishot: 5, critDamageModifier: 1.6, piercing: 0 },
-            magicBook: { damage: 9, fireInterval: 0.25, range: 95, projectileSpeed: 0, multishot: 1, critDamageModifier: 1.35, piercing: 0 },
-            potionFlask: { damage: 24, fireInterval: 1.45, range: 620, projectileSpeed: 270, multishot: 1, critDamageModifier: 1.8, piercing: 0 },
-            sword: { damage: 26, fireInterval: 0.65, range: 90, projectileSpeed: 0, multishot: 1, critDamageModifier: 1.7, piercing: 0 }
+            Pistol: { damage: 20, fireInterval: 0.28, range: 520, projectileSpeed: 520, multishot: 1, critDamageModifier: 1.75, piercing: 0, aoe: 1 },
+            Sniper: { damage: 34, fireInterval: 0.62, range: 980, projectileSpeed: 620, multishot: 1, critDamageModifier: 2.3, piercing: 2, aoe: 1 },
+            explosiveCannon: { damage: 38, fireInterval: 1.2, range: 650, projectileSpeed: 320, multishot: 1, critDamageModifier: 1.9, piercing: 0, aoe: 1 },
+            shotgun: { damage: 24, fireInterval: 0.95, range: 460, projectileSpeed: 460, multishot: 5, critDamageModifier: 1.6, piercing: 0, aoe: 1 },
+            magicBook: { damage: 9, fireInterval: 0.25, range: 95, projectileSpeed: 0, multishot: 1, critDamageModifier: 1.35, piercing: 0, aoe: 1 },
+            potionFlask: { damage: 24, fireInterval: 1.45, range: 620, projectileSpeed: 270, multishot: 1, critDamageModifier: 1.8, piercing: 0, aoe: 1 },
+            sword: { damage: 26, fireInterval: 0.65, range: 90, projectileSpeed: 0, multishot: 1, critDamageModifier: 1.7, piercing: 0, aoe: 1 }
           },
           aimX: 0,
           aimY: -1,
@@ -1251,7 +1264,7 @@
           }
         };
         const starter = player.weaponStats[player.baseWeapon];
-        if (starter) {
+        if (starter && chosen.id !== "shadowborn") {
           starter.damage = chosen.damage;
           starter.fireInterval = chosen.fireInterval;
           starter.range = chosen.range;
@@ -1270,6 +1283,7 @@
         particles = [];
         pulses = [];
         cages = [];
+        flaskClouds = [];
         remotePlayers.clear();
         positionBroadcastTimer = 0;
         camX = player.x;
@@ -1318,6 +1332,28 @@
           alert("Code accepted. Shadowborn is already unlocked.");
         }
         renderCharacterMenu();
+      }
+
+      function spawnFlaskCloud(x, y, aoe = 120, weaponKey = "potionFlask") {
+        flaskClouds.push({
+          x,
+          y,
+          r: Math.max(56, aoe * 0.55),
+          life: 1.8,
+          tickTimer: 0.12,
+          tickInterval: 0.22,
+          dpsScale: 0.22,
+          weaponKey
+        });
+      }
+
+      function getWeaponAoeScale(stats) {
+        return clamp(stats?.aoe || 1, 0.6, 3.2);
+      }
+
+      function scaleProjectileRadius(baseRadius, stats) {
+        const aoeScale = getWeaponAoeScale(stats);
+        return baseRadius * Math.sqrt(aoeScale);
       }
 
       function spawnEnemy(isBoss = false, forcedType = null) {
@@ -1607,7 +1643,7 @@
       }
 
       function fireSecondaryWeapons(dt) {
-        if (player.weapons.includes("explosiveCannon")) {
+        if (player.weapons.includes("explosiveCannon") || player.baseWeapon === "explosiveCannon") {
           const stats = getWeaponStats("explosiveCannon");
           if (!stats) {
             player.weaponTimers.explosiveCannon = 0;
@@ -1617,9 +1653,10 @@
             player.weaponTimers.explosiveCannon = 0;
             const dir = getShotDirToNearest(stats.range);
             if (dir) {
+              const aoeScale = getWeaponAoeScale(stats);
               projectiles.push({
                 x: player.x, y: player.y, vx: dir.x * stats.projectileSpeed, vy: dir.y * stats.projectileSpeed,
-                r: 8, damage: stats.damage, life: 2.2, kind: "cannon", aoe: 95, weaponKey: "explosiveCannon", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+                r: scaleProjectileRadius(8, stats), damage: stats.damage, life: 2.2, kind: "cannon", aoe: 95 * aoeScale, weaponKey: "explosiveCannon", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
               });
             }
           }
@@ -1647,7 +1684,7 @@
                 const ry = dir.x * s + dir.y * c;
                 projectiles.push({
                   x: player.x, y: player.y, vx: rx * stats.projectileSpeed, vy: ry * stats.projectileSpeed,
-                  r: 4, damage: stats.damage, life: 0.55, kind: "shotgun", weaponKey: "shotgun", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+                  r: scaleProjectileRadius(4, stats), damage: stats.damage, life: 0.55, kind: "shotgun", weaponKey: "shotgun", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
                 });
               }
             }
@@ -1655,7 +1692,7 @@
           }
         }
 
-        if (player.weapons.includes("potionFlask")) {
+        if (player.weapons.includes("potionFlask") || player.baseWeapon === "potionFlask") {
           const stats = getWeaponStats("potionFlask");
           if (!stats) {
             player.weaponTimers.potionFlask = 0;
@@ -1665,16 +1702,17 @@
             player.weaponTimers.potionFlask = 0;
             const dir = getShotDirToNearest(stats.range);
             if (dir) {
+              const aoeScale = getWeaponAoeScale(stats);
               projectiles.push({
                 x: player.x, y: player.y, vx: dir.x * stats.projectileSpeed, vy: dir.y * stats.projectileSpeed,
-                r: 7, damage: stats.damage, life: 2.4, kind: "flask", aoe: 120, weaponKey: "potionFlask", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+                r: scaleProjectileRadius(7, stats), damage: stats.damage, life: 2.4, kind: "flask", aoe: 120 * aoeScale, weaponKey: "potionFlask", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
               });
             }
           }
           }
         }
 
-        if (player.weapons.includes("sword")) {
+        if (player.weapons.includes("sword") || player.baseWeapon === "sword") {
           const stats = getWeaponStats("sword");
           if (!stats) {
             player.weaponTimers.sword = 0;
@@ -1682,8 +1720,9 @@
           player.weaponTimers.sword += dt;
           if (player.weaponTimers.sword >= stats.fireInterval) {
             player.weaponTimers.sword = 0;
+            const swordRange = stats.range * getWeaponAoeScale(stats);
             for (const e of enemies.slice()) {
-              if (dist2(player.x, player.y, e.x, e.y) <= stats.range * stats.range) {
+              if (dist2(player.x, player.y, e.x, e.y) <= swordRange * swordRange) {
                 const crit = rollCrit("sword", stats.damage);
                 damageEnemy(e, crit.damage, e.x, e.y, crit.isCrit);
               }
@@ -1692,20 +1731,23 @@
           }
         }
 
-        if (player.weapons.includes("magicBook")) {
+        if (player.weapons.includes("magicBook") || player.baseWeapon === "magicBook") {
           const stats = getWeaponStats("magicBook");
           if (stats) {
             const needed = 2;
+            const aoeScale = getWeaponAoeScale(stats);
+            const orbitRadius = 70 * Math.sqrt(aoeScale);
             while (orbitProjectiles.length < needed) {
-              orbitProjectiles.push({ angle: Math.random() * Math.PI * 2, r: 7 });
+              orbitProjectiles.push({ angle: Math.random() * Math.PI * 2, r: scaleProjectileRadius(7, stats) });
             }
             while (orbitProjectiles.length > needed) {
               orbitProjectiles.pop();
             }
             for (const orb of orbitProjectiles) {
+              orb.r = scaleProjectileRadius(7, stats);
               orb.angle += dt * 2.9;
-              orb.x = player.x + Math.cos(orb.angle) * 70;
-              orb.y = player.y + Math.sin(orb.angle) * 70;
+              orb.x = player.x + Math.cos(orb.angle) * orbitRadius;
+              orb.y = player.y + Math.sin(orb.angle) * orbitRadius;
               for (const e of enemies.slice()) {
                 const rr = orb.r + e.r;
                 if (dist2(orb.x, orb.y, e.x, e.y) <= rr * rr) {
@@ -1759,7 +1801,7 @@
             y: player.y,
             vx: dirX * primaryStats.projectileSpeed,
             vy: dirY * primaryStats.projectileSpeed,
-            r: 5,
+            r: scaleProjectileRadius(5, primaryStats),
             damage: primaryStats.damage,
             life: 1.0,
             kind: player.baseWeapon === "Sniper" ? "sniper" : "pistol",
@@ -1818,7 +1860,11 @@
         }
 
         const primaryStats = getWeaponStats(player.baseWeapon);
-        if (primaryStats && fireTimer >= primaryStats.fireInterval) {
+        const primaryIsAutoWeapon = player.baseWeapon === "explosiveCannon"
+          || player.baseWeapon === "potionFlask"
+          || player.baseWeapon === "sword"
+          || player.baseWeapon === "magicBook";
+        if (primaryStats && !primaryIsAutoWeapon && fireTimer >= primaryStats.fireInterval) {
           fireTimer -= primaryStats.fireInterval;
           shootAtNearestEnemy();
         }
@@ -1904,6 +1950,9 @@
             }
           }
           if (obstacleHit) {
+            if (p.kind === "flask") {
+              spawnFlaskCloud(p.x, p.y, p.aoe, p.weaponKey || "potionFlask");
+            }
             projectiles.splice(i, 1);
             continue;
           }
@@ -1942,6 +1991,9 @@
                   }
                 }
               }
+              if (p.kind === "flask") {
+                spawnFlaskCloud(p.x, p.y, p.aoe, p.weaponKey || "potionFlask");
+              }
               if ((p.pierceLeft || 0) > 0) {
                 p.pierceLeft -= 1;
                 hit = false;
@@ -1951,6 +2003,27 @@
           }
 
           if (hit) projectiles.splice(i, 1);
+        }
+
+        for (let i = flaskClouds.length - 1; i >= 0; i--) {
+          const cloud = flaskClouds[i];
+          cloud.life -= dt;
+          cloud.tickTimer -= dt;
+          if (cloud.life <= 0) {
+            flaskClouds.splice(i, 1);
+            continue;
+          }
+          if (cloud.tickTimer <= 0) {
+            cloud.tickTimer += cloud.tickInterval;
+            const base = player.weaponStats[cloud.weaponKey];
+            const tickDamage = (base ? base.damage : 18) * cloud.dpsScale;
+            for (const e of enemies.slice()) {
+              if (dist2(cloud.x, cloud.y, e.x, e.y) <= cloud.r * cloud.r) {
+                const crit = rollCrit(cloud.weaponKey, tickDamage);
+                damageEnemy(e, crit.damage, e.x, e.y, crit.isCrit);
+              }
+            }
+          }
         }
 
         const magnetRange = 160;
@@ -2282,6 +2355,23 @@
         }
       }
 
+      function drawFlaskClouds() {
+        for (const cloud of flaskClouds) {
+          const groundZ = getTerrainHeight(cloud.x, cloud.y);
+          const p = toIso(cloud.x, cloud.y, groundZ + 2);
+          const lifeRatio = clamp(cloud.life / 1.8, 0, 1);
+          ctx.save();
+          ctx.fillStyle = `rgba(183, 96, 238, ${0.16 * lifeRatio})`;
+          ctx.strokeStyle = `rgba(214, 143, 255, ${0.42 * lifeRatio})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, cloud.r, cloud.r * 0.62, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
       function drawOrbitProjectiles() {
         for (const orb of orbitProjectiles) {
           const groundZ = getTerrainHeight(orb.x, orb.y);
@@ -2608,6 +2698,7 @@
         drawGems();
         drawDrops();
         drawChests();
+        drawFlaskClouds();
         drawProjectiles();
         drawOrbitProjectiles();
         for (const d of drawables) d.draw();
@@ -2724,6 +2815,10 @@
         setLobbyStatus("Create or join a lobby.");
       });
       openCodeEntryBtn.addEventListener("click", () => {
+        const entered = prompt("Enter secret code:");
+        tryUnlockSecretCode(entered);
+      });
+      openCodeEntryBtnCharacters.addEventListener("click", () => {
         const entered = prompt("Enter secret code:");
         tryUnlockSecretCode(entered);
       });
