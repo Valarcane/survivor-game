@@ -2375,6 +2375,8 @@
         ctx.font = "14px monospace";
         ctx.fillText("Rotate: Q/E", pad, 56);
         ctx.fillText("Inventory: I", pad + 120, 56);
+        ctx.fillStyle = "#8fd7ff";
+        ctx.fillText(`Peers: ${remotePlayers.size}`, pad + 236, 56);
 
         const bx = pad, by = 70, bw = 280, bh = 16;
         const hpRatio = player.hp / player.maxHp;
@@ -2593,12 +2595,19 @@
         positionBroadcastTimer += dt;
         if (positionBroadcastTimer < 0.12) return;
         positionBroadcastTimer = 0;
-        lobbySub.track({
+        const payload = {
           player_id: playerId,
           name: getPlayerName(),
           x: Math.round(player.x),
           y: Math.round(player.y),
           t: Date.now()
+        };
+        lobbySub.track(payload);
+        // Fallback for environments where Presence sync is delayed/disabled.
+        lobbySub.send({
+          type: "broadcast",
+          event: "player_pos",
+          payload
         });
       }
 
@@ -2890,6 +2899,15 @@
               });
             }
             remotePlayers = nextRemote;
+          })
+          .on("broadcast", { event: "player_pos" }, ({ payload }) => {
+            if (!payload || !payload.player_id || payload.player_id === playerId) return;
+            remotePlayers.set(payload.player_id, {
+              x: Number(payload.x) || 0,
+              y: Number(payload.y) || 0,
+              name: payload.name || "Player",
+              t: performance.now()
+            });
           })
           .subscribe((status) => {
             if (status === "SUBSCRIBED") {
