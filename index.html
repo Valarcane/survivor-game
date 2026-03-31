@@ -269,6 +269,16 @@
       font-family: inherit;
     }
 
+    .field-row select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      background: #122516;
+      color: #efffef;
+      border: 1px solid #4f8d59;
+      font-family: inherit;
+    }
+
     #lobbyPanel {
       margin-top: 10px;
       padding: 10px;
@@ -378,12 +388,25 @@
           <p>Choose what to do</p>
           <button id="startRunBtn">Single Player</button>
           <button id="openMultiplayerBtn">Multiplayer</button>
+          <button id="openCodeEntryBtn">Enter Secret Code</button>
           <button id="openOptionsBtn">Options</button>
         </div>
         <div id="menuCharacters">
           <h1>CHOOSE CHARACTER</h1>
           <p>Select your survivor</p>
           <div id="characterList" class="character-grid"></div>
+          <div id="secretWeaponRow" class="field-row" style="display:none;">
+            <label for="secretWeaponSelect">Secret Character Weapon</label>
+            <select id="secretWeaponSelect">
+              <option value="Pistol">Pistol</option>
+              <option value="Sniper">Sniper</option>
+              <option value="shotgun">Shotgun</option>
+              <option value="explosiveCannon">Explosive Cannon</option>
+              <option value="magicBook">Magik Book</option>
+              <option value="potionFlask">Potion Flask</option>
+              <option value="sword">Sword</option>
+            </select>
+          </div>
           <button id="startGameBtn">Begin Run</button>
           <button id="backToHomeBtn">Back</button>
         </div>
@@ -487,6 +510,7 @@
       const characterListEl = document.getElementById("characterList");
       const startRunBtn = document.getElementById("startRunBtn");
       const openMultiplayerBtn = document.getElementById("openMultiplayerBtn");
+      const openCodeEntryBtn = document.getElementById("openCodeEntryBtn");
       const openOptionsBtn = document.getElementById("openOptionsBtn");
       const backToHomeBtn = document.getElementById("backToHomeBtn");
       const toggleSfxBtn = document.getElementById("toggleSfxBtn");
@@ -494,6 +518,8 @@
       const backFromOptionsBtn = document.getElementById("backFromOptionsBtn");
       const backFromMultiplayerBtn = document.getElementById("backFromMultiplayerBtn");
       const startGameBtn = document.getElementById("startGameBtn");
+      const secretWeaponRowEl = document.getElementById("secretWeaponRow");
+      const secretWeaponSelectEl = document.getElementById("secretWeaponSelect");
       const playerNameInput = document.getElementById("playerNameInput");
       const joinCodeInput = document.getElementById("joinCodeInput");
       const createLobbyBtn = document.getElementById("createLobbyBtn");
@@ -518,6 +544,8 @@
       const MAX_LOBBY_PLAYERS = 3;
       const PLAYER_ID_KEY = "vsPlayerIdV1";
       const PLAYER_NAME_KEY = "vsPlayerNameV1";
+      const SECRET_CHARACTER_KEY = "vsSecretCharacterUnlockedV1";
+      const SECRET_CHARACTER_CODE = "AABBA";
       let supabase = null;
       let lobbySub = null;
       let lobbyId = null;
@@ -717,14 +745,20 @@
       let nextBossTime = BOSS_START_INTERVAL;
       let bossCount = 0;
       let selectedCharacterId = "wanderer";
-      const unlockedCharacters = { wanderer: true, ranger: false, guardian: false };
+      const unlockedCharacters = { wanderer: true, ranger: false, guardian: false, shadowborn: false };
+      let selectedSecretStartWeapon = "Pistol";
       const cageUnlockProgressRequired = 4.5;
 
       const characterCatalog = [
         { id: "wanderer", name: "Wanderer", description: "Balanced pistol survivor", hp: 100, speed: 250, damage: 20, fireInterval: 0.28, range: 520, precision: 1.0, startingWeapon: "Pistol", color: "#44f" },
         { id: "ranger", name: "Ranger", description: "Starts with sniper", hp: 100, speed: 265, damage: 34, fireInterval: 0.86, range: 980, precision: 1.35, startingWeapon: "Sniper", color: "#4df" },
-        { id: "guardian", name: "Guardian", description: "Tank shotgun survivor", hp: 100, speed: 215, damage: 24, fireInterval: 0.31, range: 540, precision: 1.0, startingWeapon: "shotgun", color: "#66f" }
+        { id: "guardian", name: "Guardian", description: "Tank shotgun survivor", hp: 100, speed: 215, damage: 24, fireInterval: 0.31, range: 540, precision: 1.0, startingWeapon: "shotgun", color: "#66f" },
+        { id: "shadowborn", name: "Shadowborn", description: "Secret survivor with custom starting weapon", hp: 108, speed: 255, damage: 22, fireInterval: 0.3, range: 600, precision: 1.15, startingWeapon: "Pistol", color: "#a76bff", hiddenUntilUnlocked: true }
       ];
+
+      if (localStorage.getItem(SECRET_CHARACTER_KEY) === "1") {
+        unlockedCharacters.shadowborn = true;
+      }
 
       const weaponCatalog = [
         { id: "explosiveCannon", name: "Explosive Canon", description: "Heavy explosive shots with area damage." },
@@ -1173,6 +1207,9 @@
 
       function resetGame() {
         const chosen = characterCatalog.find((c) => c.id === selectedCharacterId) || characterCatalog[0];
+        const startWeapon = chosen.id === "shadowborn"
+          ? (selectedSecretStartWeapon || "Pistol")
+          : (chosen.startingWeapon || "Pistol");
         player = {
           x: 0,
           y: 0,
@@ -1192,7 +1229,7 @@
           maxEnemies: 40,
           spawnSpeedMultiplier: 1,
           color: chosen.color,
-          baseWeapon: chosen.startingWeapon || "Pistol",
+          baseWeapon: startWeapon,
           weaponStats: {
             Pistol: { damage: 20, fireInterval: 0.28, range: 520, projectileSpeed: 520, multishot: 1, critDamageModifier: 1.75, piercing: 0 },
             Sniper: { damage: 34, fireInterval: 0.62, range: 980, projectileSpeed: 620, multishot: 1, critDamageModifier: 2.3, piercing: 2 },
@@ -1264,6 +1301,23 @@
         inventoryUI.style.display = "none";
         mainMenuUI.style.display = "none";
         gameStarted = true;
+      }
+
+      function tryUnlockSecretCode(rawCode) {
+        const code = (rawCode || "").trim().toUpperCase();
+        if (!code) return;
+        if (code !== SECRET_CHARACTER_CODE) {
+          alert("Invalid code.");
+          return;
+        }
+        if (!unlockedCharacters.shadowborn) {
+          unlockedCharacters.shadowborn = true;
+          localStorage.setItem(SECRET_CHARACTER_KEY, "1");
+          alert("Secret unlocked: Shadowborn!");
+        } else {
+          alert("Code accepted. Shadowborn is already unlocked.");
+        }
+        renderCharacterMenu();
       }
 
       function spawnEnemy(isBoss = false, forcedType = null) {
@@ -2669,6 +2723,10 @@
         playerNameInput.value = saved;
         setLobbyStatus("Create or join a lobby.");
       });
+      openCodeEntryBtn.addEventListener("click", () => {
+        const entered = prompt("Enter secret code:");
+        tryUnlockSecretCode(entered);
+      });
       openOptionsBtn.addEventListener("click", () => {
         menuHomeEl.style.display = "none";
         menuCharactersEl.style.display = "none";
@@ -2694,6 +2752,9 @@
         menuOptionsEl.style.display = "none";
         menuMultiplayerEl.style.display = "none";
         menuHomeEl.style.display = "block";
+      });
+      secretWeaponSelectEl.addEventListener("change", () => {
+        selectedSecretStartWeapon = secretWeaponSelectEl.value;
       });
       toggleSfxBtn.addEventListener("click", () => {
         if (!audioCtx) ensureAudio();
@@ -2739,6 +2800,7 @@
       function renderCharacterMenu() {
         characterListEl.innerHTML = "";
         for (const c of characterCatalog) {
+          if (c.hiddenUntilUnlocked && !unlockedCharacters[c.id]) continue;
           const locked = !unlockedCharacters[c.id];
           const btn = document.createElement("button");
           btn.className = `char-btn${selectedCharacterId === c.id ? " active" : ""}${locked ? " locked" : ""}`;
@@ -2753,6 +2815,9 @@
           characterListEl.appendChild(btn);
         }
         if (!unlockedCharacters[selectedCharacterId]) selectedCharacterId = "wanderer";
+        const isSecretSelected = selectedCharacterId === "shadowborn" && unlockedCharacters.shadowborn;
+        secretWeaponRowEl.style.display = isSecretSelected ? "block" : "none";
+        if (isSecretSelected) secretWeaponSelectEl.value = selectedSecretStartWeapon;
         startGameBtn.disabled = !unlockedCharacters[selectedCharacterId];
       }
 
