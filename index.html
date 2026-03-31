@@ -1,0 +1,2980 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vampire Survivors - Time Survival</title>
+  <style>
+    :root {
+      --bg: #102915;
+      --bg2: #15351c;
+      --ui: #d6f5d6;
+      --accent: #44f;
+      --enemy: #c33;
+      --projectile: #ffd83a;
+      --gem: #31ff6f;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a130d;
+      overflow: hidden;
+      font-family: "Courier New", monospace;
+      color: var(--ui);
+    }
+
+    .wrap {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    canvas {
+      width: min(100vw, 1200px);
+      height: calc(min(100vw, 1200px) * 0.6666667);
+      max-height: 100vh;
+      border: 2px solid #264d2d;
+      background: var(--bg);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.7);
+    }
+
+    #gameOverUI {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .panel {
+      pointer-events: all;
+      background: rgba(5, 15, 8, 0.9);
+      border: 2px solid #3f7a4c;
+      padding: 18px 22px;
+      text-align: center;
+      min-width: 320px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .panel h1 {
+      margin: 0 0 10px;
+      color: #ff6767;
+      font-size: 28px;
+      letter-spacing: 1px;
+    }
+
+    .panel p {
+      margin: 8px 0;
+      font-size: 18px;
+    }
+
+    .panel button {
+      margin-top: 10px;
+      background: #2f6d3b;
+      color: #efffef;
+      border: 2px solid #6bcb7f;
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .panel button:hover {
+      background: #3a8449;
+    }
+
+    #upgradeUI {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #upgradeUI .panel h1 {
+      color: #ffe48b;
+      font-size: 24px;
+    }
+
+    .upgrade-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .upgrade-btn {
+      background: #1f4f2a;
+      color: #efffef;
+      border: 2px solid #6bcb7f;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .upgrade-btn:hover {
+      background: #2d6b3a;
+    }
+
+    .upgrade-btn.rarity-common {
+      border-color: #9a9a9a;
+      background: #3a3a3a;
+      color: #efefef;
+      box-shadow: 0 0 6px rgba(180, 180, 180, 0.2);
+    }
+    .upgrade-btn.rarity-uncommon { border-color: #5ccf74; box-shadow: 0 0 8px rgba(92, 207, 116, 0.25); }
+    .upgrade-btn.rarity-rare { border-color: #6aa8ff; box-shadow: 0 0 10px rgba(106, 168, 255, 0.28); }
+    .upgrade-btn.rarity-epic { border-color: #c97bff; box-shadow: 0 0 12px rgba(201, 123, 255, 0.32); }
+
+    #refreshUpgradesBtn {
+      margin-top: 10px;
+    }
+
+    #chestUI {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #chestUI .panel h1 {
+      color: #ffd86d;
+      font-size: 24px;
+    }
+
+    #inventoryUI {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+      background: rgba(5, 12, 8, 0.72);
+      z-index: 18;
+    }
+
+    #inventoryUI .panel {
+      width: min(760px, 92vw);
+      max-height: 82vh;
+      overflow: auto;
+      text-align: left;
+    }
+
+    #inventoryUI h2 {
+      margin: 10px 0 6px;
+      font-size: 18px;
+      color: #b9d6ff;
+    }
+
+    #inventoryUI ul {
+      margin: 4px 0 10px 18px;
+      padding: 0;
+    }
+
+    #inventoryUI li {
+      margin: 2px 0;
+      font-size: 14px;
+    }
+
+    .inv-icon {
+      display: inline-block;
+      width: 16px;
+      text-align: center;
+      margin-right: 4px;
+      color: #dff5df;
+    }
+
+    #inventoryHint {
+      font-size: 12px;
+      color: #cce9cc;
+      opacity: 0.9;
+      margin-top: 8px;
+    }
+
+    #mainMenuUI {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+      background: rgba(5, 14, 8, 0.6);
+    }
+
+    #mainMenuUI .panel h1 {
+      color: #9ac0ff;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .character-grid {
+      display: grid;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .char-btn {
+      background: #1c4325;
+      color: #efffef;
+      border: 2px solid #6bcb7f;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+    }
+
+    .char-btn.active {
+      border-color: #9ac0ff;
+      box-shadow: 0 0 0 2px rgba(154, 192, 255, 0.3) inset;
+    }
+
+    .char-btn.locked {
+      opacity: 0.6;
+      border-color: #7a7a7a;
+      background: #2b2b2b;
+      cursor: not-allowed;
+    }
+
+    #menuHome, #menuCharacters, #menuOptions {
+      display: none;
+    }
+
+    #menuMultiplayer {
+      display: none;
+    }
+
+    .field-row {
+      margin: 8px 0;
+      text-align: left;
+    }
+
+    .field-row input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      background: #122516;
+      color: #efffef;
+      border: 1px solid #4f8d59;
+      font-family: inherit;
+    }
+
+    #lobbyPanel {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #4f8d59;
+      background: rgba(6, 16, 9, 0.5);
+      text-align: left;
+      display: none;
+    }
+
+    #lobbyStatus {
+      font-size: 13px;
+      margin: 6px 0;
+      color: #d9f5d9;
+    }
+
+    #lobbyPlayers {
+      margin: 8px 0;
+      padding-left: 18px;
+    }
+
+    #loadingUI {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+      background: radial-gradient(circle at 50% 40%, rgba(28, 61, 34, 0.95), rgba(7, 15, 9, 0.98));
+      opacity: 1;
+      transition: opacity 350ms ease;
+      z-index: 20;
+    }
+
+    #loadingUI.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #loadingUI .panel h1 {
+      color: #9ac0ff;
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    #loadingLabel {
+      font-size: 14px;
+      color: #d7edd7;
+      margin: 8px 0 6px;
+      min-height: 18px;
+    }
+
+    .loading-bar-wrap {
+      width: 340px;
+      height: 18px;
+      border: 2px solid #6bcb7f;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 8px auto 4px;
+    }
+
+    #loadingBar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4f8dff, #8ad2ff);
+      transition: width 130ms linear;
+    }
+
+    #loadingPercent {
+      font-size: 13px;
+      color: #e6ffe6;
+    }
+
+    .loading-spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #9ac0ff;
+      border-radius: 50%;
+      margin: 10px auto 0;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="game" width="1200" height="800"></canvas>
+
+    <div id="loadingUI">
+      <div class="panel">
+        <h1>LOADING RUN...</h1>
+        <div id="loadingLabel">Booting systems</div>
+        <div class="loading-bar-wrap">
+          <div id="loadingBar"></div>
+        </div>
+        <div id="loadingPercent">0%</div>
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+
+    <div id="mainMenuUI">
+      <div class="panel">
+        <div id="menuHome">
+          <h1>VAMPIRE SURVIVORS<br />TIME SURVIVAL</h1>
+          <p>Choose what to do</p>
+          <button id="startRunBtn">Single Player</button>
+          <button id="openMultiplayerBtn">Multiplayer</button>
+          <button id="openOptionsBtn">Options</button>
+        </div>
+        <div id="menuCharacters">
+          <h1>CHOOSE CHARACTER</h1>
+          <p>Select your survivor</p>
+          <div id="characterList" class="character-grid"></div>
+          <button id="startGameBtn">Begin Run</button>
+          <button id="backToHomeBtn">Back</button>
+        </div>
+        <div id="menuOptions">
+          <h1>OPTIONS</h1>
+          <p>Toggle gameplay effects</p>
+          <button id="toggleSfxBtn">SFX: ON</button>
+          <button id="toggleShakeBtn">Screen Shake: ON</button>
+          <button id="backFromOptionsBtn">Back</button>
+        </div>
+        <div id="menuMultiplayer">
+          <h1>MULTIPLAYER</h1>
+          <p>Create or join a lobby (max 3 players)</p>
+          <div class="field-row">
+            <label for="playerNameInput">Player Name</label>
+            <input id="playerNameInput" maxlength="16" placeholder="Player" />
+          </div>
+          <button id="createLobbyBtn">Create Lobby</button>
+          <div class="field-row">
+            <label for="joinCodeInput">Lobby Code</label>
+            <input id="joinCodeInput" maxlength="6" placeholder="ABC123" />
+          </div>
+          <button id="joinLobbyBtn">Join By Code</button>
+          <button id="backFromMultiplayerBtn">Back</button>
+          <div id="lobbyPanel">
+            <div><strong>Code:</strong> <span id="lobbyCodeText">-</span></div>
+            <div id="lobbyStatus">Not connected.</div>
+            <ul id="lobbyPlayers"></ul>
+            <button id="readyLobbyBtn">Toggle Ready</button>
+            <button id="startLobbyRunBtn">Start (Host)</button>
+            <button id="leaveLobbyBtn">Leave Lobby</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="gameOverUI">
+      <div class="panel">
+        <h1>GAME OVER</h1>
+        <p id="finalTime">Time: 00:00</p>
+        <p id="finalLevel">Level: 1</p>
+        <button id="restartBtn">Restart</button>
+        <button id="backToMenuBtn">Back To Menu</button>
+      </div>
+    </div>
+
+    <div id="upgradeUI">
+      <div class="panel">
+        <h1>LEVEL UP</h1>
+        <p>Choose one upgrade</p>
+        <div id="upgradeList" class="upgrade-list"></div>
+        <button id="refreshUpgradesBtn">Refresh (1)</button>
+      </div>
+    </div>
+
+    <div id="chestUI">
+      <div class="panel">
+        <h1>BOSS CHEST</h1>
+        <p>Choose a new weapon</p>
+        <div id="chestList" class="upgrade-list"></div>
+      </div>
+    </div>
+
+    <div id="inventoryUI">
+      <div class="panel">
+        <h1>INVENTORY</h1>
+        <div id="inventoryContent"></div>
+        <button id="endRunBtn">End Run</button>
+        <div id="inventoryHint">Press I to close</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+
+      const gameOverUI = document.getElementById("gameOverUI");
+      const finalTimeEl = document.getElementById("finalTime");
+      const finalLevelEl = document.getElementById("finalLevel");
+      const restartBtn = document.getElementById("restartBtn");
+      const backToMenuBtn = document.getElementById("backToMenuBtn");
+      const upgradeUI = document.getElementById("upgradeUI");
+      const upgradeListEl = document.getElementById("upgradeList");
+      const refreshUpgradesBtn = document.getElementById("refreshUpgradesBtn");
+      const chestUI = document.getElementById("chestUI");
+      const chestListEl = document.getElementById("chestList");
+      const inventoryUI = document.getElementById("inventoryUI");
+      const inventoryContentEl = document.getElementById("inventoryContent");
+      const endRunBtn = document.getElementById("endRunBtn");
+      const mainMenuUI = document.getElementById("mainMenuUI");
+      const menuHomeEl = document.getElementById("menuHome");
+      const menuCharactersEl = document.getElementById("menuCharacters");
+      const menuOptionsEl = document.getElementById("menuOptions");
+      const menuMultiplayerEl = document.getElementById("menuMultiplayer");
+      const characterListEl = document.getElementById("characterList");
+      const startRunBtn = document.getElementById("startRunBtn");
+      const openMultiplayerBtn = document.getElementById("openMultiplayerBtn");
+      const openOptionsBtn = document.getElementById("openOptionsBtn");
+      const backToHomeBtn = document.getElementById("backToHomeBtn");
+      const toggleSfxBtn = document.getElementById("toggleSfxBtn");
+      const toggleShakeBtn = document.getElementById("toggleShakeBtn");
+      const backFromOptionsBtn = document.getElementById("backFromOptionsBtn");
+      const backFromMultiplayerBtn = document.getElementById("backFromMultiplayerBtn");
+      const startGameBtn = document.getElementById("startGameBtn");
+      const playerNameInput = document.getElementById("playerNameInput");
+      const joinCodeInput = document.getElementById("joinCodeInput");
+      const createLobbyBtn = document.getElementById("createLobbyBtn");
+      const joinLobbyBtn = document.getElementById("joinLobbyBtn");
+      const lobbyPanelEl = document.getElementById("lobbyPanel");
+      const lobbyCodeTextEl = document.getElementById("lobbyCodeText");
+      const lobbyStatusEl = document.getElementById("lobbyStatus");
+      const lobbyPlayersEl = document.getElementById("lobbyPlayers");
+      const readyLobbyBtn = document.getElementById("readyLobbyBtn");
+      const startLobbyRunBtn = document.getElementById("startLobbyRunBtn");
+      const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
+      const loadingUI = document.getElementById("loadingUI");
+      const loadingLabelEl = document.getElementById("loadingLabel");
+      const loadingBarEl = document.getElementById("loadingBar");
+      const loadingPercentEl = document.getElementById("loadingPercent");
+
+      const W = canvas.width;
+      const H = canvas.height;
+
+      const SUPABASE_URL = "https://sumcnktydzdmzbhepqpw.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_FZyBwmrWTrGb3AV5h_Aslg_2W95nc-r";
+      const MAX_LOBBY_PLAYERS = 3;
+      const PLAYER_ID_KEY = "vsPlayerIdV1";
+      const PLAYER_NAME_KEY = "vsPlayerNameV1";
+      let supabase = null;
+      let lobbySub = null;
+      let lobbyId = null;
+      let lobbyCode = "";
+      let playerId = "";
+      let localReady = false;
+      let isLobbyHost = false;
+
+      const keys = new Set();
+      const movementKeys = new Set([
+        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+        "w", "a", "s", "d", "W", "A", "S", "D"
+      ]);
+
+      window.addEventListener("keydown", (e) => {
+        if (movementKeys.has(e.key)) e.preventDefault();
+        if (e.key === "i" || e.key === "I") {
+          e.preventDefault();
+          toggleInventory();
+        }
+        keys.add(e.key);
+      }, { passive: false });
+
+      window.addEventListener("keyup", (e) => {
+        keys.delete(e.key);
+      });
+
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const dist2 = (ax, ay, bx, by) => {
+        const dx = bx - ax, dy = by - ay;
+        return dx * dx + dy * dy;
+      };
+      const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      };
+      // Classic isometric-like projection tuning (2:1 diamond style)
+      const ISO_X = 0.62;
+      const ISO_Y = 0.31;
+      const ISO_OFFSET_Y = 36;
+      const ISO_SQUASH = 0.68;
+      const TERRAIN_TILE = 70;
+      const TERRAIN_AMPLITUDE = 42;
+      const OBSTACLE_CELL = 140;
+      let camX = 0;
+      let camY = 0;
+      let camYaw = 0;
+
+      function hash2(x, y) {
+        const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+        return n - Math.floor(n);
+      }
+
+      function smooth(t) {
+        return t * t * (3 - 2 * t);
+      }
+
+      function valueNoise(x, y) {
+        const xi = Math.floor(x);
+        const yi = Math.floor(y);
+        const xf = x - xi;
+        const yf = y - yi;
+        const v00 = hash2(xi, yi);
+        const v10 = hash2(xi + 1, yi);
+        const v01 = hash2(xi, yi + 1);
+        const v11 = hash2(xi + 1, yi + 1);
+        const u = smooth(xf);
+        const v = smooth(yf);
+        const x1 = v00 + (v10 - v00) * u;
+        const x2 = v01 + (v11 - v01) * u;
+        return x1 + (x2 - x1) * v;
+      }
+
+      function fractalNoise(x, y) {
+        let sum = 0;
+        let amp = 1;
+        let freq = 1;
+        let norm = 0;
+        for (let i = 0; i < 5; i++) {
+          sum += valueNoise(x * freq, y * freq) * amp;
+          norm += amp;
+          amp *= 0.52;
+          freq *= 2.05;
+        }
+        return sum / norm;
+      }
+
+      function getTerrainHeight(x, y) {
+        // Procedural non-periodic terrain using fBm value noise.
+        const n = fractalNoise(x * 0.0022, y * 0.0022);
+        const ridge = 1 - Math.abs(fractalNoise(x * 0.0011 + 173.1, y * 0.0011 - 91.7) * 2 - 1);
+        return (n * 0.75 + ridge * 0.25 - 0.5) * TERRAIN_AMPLITUDE * 2.1;
+      }
+
+      function rotateVec(x, y, angle) {
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        return { x: x * c - y * s, y: x * s + y * c };
+      }
+
+      function getObstacleInCell(cx, cy) {
+        const chance = hash2(cx * 1.7 + 19.3, cy * 2.3 - 77.1);
+        if (chance > 0.17) return null;
+        const ox = (hash2(cx * 4.1 + 0.1, cy * 3.3 + 0.4) - 0.5) * (OBSTACLE_CELL * 0.65);
+        const oy = (hash2(cx * 2.8 + 3.7, cy * 5.4 + 0.9) - 0.5) * (OBSTACLE_CELL * 0.65);
+        const radius = 18 + hash2(cx * 9.2 + 2.1, cy * 1.2 + 7.7) * 20;
+        const type = hash2(cx * 5.5 + 8.8, cy * 6.6 + 9.9) < 0.5 ? "tree" : "rock";
+        return {
+          x: cx * OBSTACLE_CELL + OBSTACLE_CELL * 0.5 + ox,
+          y: cy * OBSTACLE_CELL + OBSTACLE_CELL * 0.5 + oy,
+          r: radius,
+          type
+        };
+      }
+
+      function getNearbyObstacles(x, y, range) {
+        const minCx = Math.floor((x - range) / OBSTACLE_CELL);
+        const maxCx = Math.floor((x + range) / OBSTACLE_CELL);
+        const minCy = Math.floor((y - range) / OBSTACLE_CELL);
+        const maxCy = Math.floor((y + range) / OBSTACLE_CELL);
+        const found = [];
+        for (let cy = minCy; cy <= maxCy; cy++) {
+          for (let cx = minCx; cx <= maxCx; cx++) {
+            const o = getObstacleInCell(cx, cy);
+            if (!o) continue;
+            if (dist2(x, y, o.x, o.y) <= (range + o.r) * (range + o.r)) found.push(o);
+          }
+        }
+        return found;
+      }
+
+      function resolveObstacleCollision(entity, dt = 1) {
+        const nearby = getNearbyObstacles(entity.x, entity.y, entity.r + 55);
+        for (const o of nearby) {
+          const dx = entity.x - o.x;
+          const dy = entity.y - o.y;
+          const d = Math.hypot(dx, dy) || 0.0001;
+          const minDist = entity.r + o.r * 0.9;
+          if (d < minDist) {
+            const push = (minDist - d);
+            entity.x += (dx / d) * push;
+            entity.y += (dy / d) * push;
+            if (entity === player && dt > 0) {
+              // Damp movement when scraping obstacles.
+              entity.x -= (dx / d) * Math.min(12 * dt, push * 0.25);
+              entity.y -= (dy / d) * Math.min(12 * dt, push * 0.25);
+            }
+          }
+        }
+      }
+
+      function toIso(x, y, z = 0) {
+        const rx = x - camX;
+        const ry = y - camY;
+        const c = Math.cos(camYaw);
+        const s = Math.sin(camYaw);
+        const rrx = rx * c - ry * s;
+        const rry = rx * s + ry * c;
+        return {
+          x: (rrx - rry) * ISO_X + W * 0.5,
+          y: (rrx + rry) * ISO_Y - (z * ISO_SQUASH) + ISO_OFFSET_Y + H * 0.5
+        };
+      }
+
+      function edgeSpawnPosition(margin = 25) {
+        const side = Math.floor(Math.random() * 4);
+        const span = 1100;
+        if (side === 0) return { x: camX + (Math.random() - 0.5) * span, y: camY - span * 0.65 - margin };
+        if (side === 1) return { x: camX + span * 0.65 + margin, y: camY + (Math.random() - 0.5) * span };
+        if (side === 2) return { x: camX + (Math.random() - 0.5) * span, y: camY + span * 0.65 + margin };
+        return { x: camX - span * 0.65 - margin, y: camY + (Math.random() - 0.5) * span };
+      }
+
+      let player, enemies, projectiles, gems, drops, damageTexts, chests, orbitProjectiles, particles, pulses, cages;
+      let gameStarted = false;
+      let elapsed = 0;
+      let spawnTimer = 0;
+      let fireTimer = 0;
+      let hitCooldown = 0;
+      let gameOver = false;
+      let upgradeOpen = false;
+      let chestOpen = false;
+      let inventoryOpen = false;
+      let refreshesLeft = 1;
+      let lastTime = 0;
+      let screenShake = 0;
+      let hurtOverlay = 0;
+      let audioCtx = null;
+      let audioEnabled = false;
+      let screenShakeEnabled = true;
+      const BOSS_START_INTERVAL = 240;
+      const BOSS_MIN_INTERVAL = 240;
+      const BOSS_INTERVAL_STEP = 0;
+      let nextBossTime = BOSS_START_INTERVAL;
+      let bossCount = 0;
+      let selectedCharacterId = "wanderer";
+      const unlockedCharacters = { wanderer: true, ranger: false, guardian: false };
+      const cageUnlockProgressRequired = 4.5;
+
+      const characterCatalog = [
+        { id: "wanderer", name: "Wanderer", description: "Balanced pistol survivor", hp: 100, speed: 250, damage: 20, fireInterval: 0.28, range: 520, precision: 1.0, startingWeapon: "Pistol", color: "#44f" },
+        { id: "ranger", name: "Ranger", description: "Starts with sniper", hp: 100, speed: 265, damage: 34, fireInterval: 0.86, range: 980, precision: 1.35, startingWeapon: "Sniper", color: "#4df" },
+        { id: "guardian", name: "Guardian", description: "Tank shotgun survivor", hp: 100, speed: 215, damage: 24, fireInterval: 0.31, range: 540, precision: 1.0, startingWeapon: "shotgun", color: "#66f" }
+      ];
+
+      const weaponCatalog = [
+        { id: "explosiveCannon", name: "Explosive Canon", description: "Heavy explosive shots with area damage." },
+        { id: "shotgun", name: "Shotgun", description: "Short burst of spread pellets." },
+        { id: "magicBook", name: "Magik Book", description: "Orbiting books shred nearby enemies." },
+        { id: "potionFlask", name: "Potion Flask", description: "Flasks explode in toxic splashes." },
+        { id: "sword", name: "Sword", description: "Fast arc slash around your hero." }
+      ];
+
+      const enemyTypeDefs = {
+        normal: {
+          hpBase: 24, hpScale: 2.4, hpRand: 8,
+          speedBase: 42, speedScale: 0.45, speedRand: 8,
+          radiusMin: 12, radiusRand: 3,
+          contactDamage: 10,
+          colors: { top: "#c33", shade: "#8f1f1f" }
+        },
+        bat: {
+          hpBase: 14, hpScale: 1.65, hpRand: 5,
+          speedBase: 66, speedScale: 0.62, speedRand: 10,
+          radiusMin: 8, radiusRand: 2,
+          contactDamage: 6,
+          colors: { top: "#b84bda", shade: "#6f2b86" }
+        },
+        brute: {
+          hpBase: 54, hpScale: 4.6, hpRand: 12,
+          speedBase: 28, speedScale: 0.25, speedRand: 5,
+          radiusMin: 17, radiusRand: 4,
+          contactDamage: 16,
+          colors: { top: "#e08d3c", shade: "#9c5d1f" }
+        }
+      };
+
+      const playerUpgradeTemplates = [
+        {
+          id: "player_hp",
+          name: "Vital Bark",
+          icon: "HP",
+          describeWithRarity: (rarityMul) => {
+            const amount = Math.round(16 * rarityMul);
+            return `+${amount} max HP and heal ${amount}`;
+          },
+          applyWithRarity: (rarityMul) => {
+            const amount = Math.round(16 * rarityMul);
+            player.maxHp += amount;
+            player.hp = clamp(player.hp + amount, 0, player.maxHp);
+          }
+        },
+        {
+          id: "player_speed",
+          name: "Fleet Step",
+          icon: "SP",
+          describeWithRarity: (rarityMul) => {
+            const amount = Math.round(18 * rarityMul);
+            return `+${amount} movement speed`;
+          },
+          applyWithRarity: (rarityMul) => {
+            const amount = Math.round(18 * rarityMul);
+            player.speed += amount;
+          }
+        },
+        {
+          id: "player_precision",
+          name: "Precision",
+          icon: "PR",
+          describeWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 0.30 : (rarityId === "rare" ? 0.22 : (rarityId === "uncommon" ? 0.16 : 0.1));
+            return `+${amount.toFixed(2)} precision (tighter split shot)`;
+          },
+          applyWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 0.30 : (rarityId === "rare" ? 0.22 : (rarityId === "uncommon" ? 0.16 : 0.1));
+            player.precision += amount;
+          }
+        },
+        {
+          id: "player_piercing",
+          name: "Piercing",
+          icon: "PC",
+          describeWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 2 : 1;
+            return `+${amount} projectile piercing`;
+          },
+          applyWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 2 : 1;
+            player.piercing += amount;
+          }
+        },
+        {
+          id: "player_luck",
+          name: "Lucky Clover",
+          icon: "LK",
+          describeWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 3 : (rarityId === "rare" ? 2 : 1);
+            return `+${amount} luck (better drops and crit chance)`;
+          },
+          applyWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 3 : (rarityId === "rare" ? 2 : 1);
+            player.luck += amount;
+          }
+        },
+        {
+          id: "player_difficulty",
+          name: "Difficulty",
+          icon: "DF",
+          describeWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 3 : (rarityId === "rare" ? 2 : 1);
+            return `+${amount} difficulty (enemy HP/speed scaling)`;
+          },
+          applyWithRarity: (rarityMul, rarityId) => {
+            const amount = rarityId === "epic" ? 3 : (rarityId === "rare" ? 2 : 1);
+            player.difficulty += amount;
+          }
+        }
+      ];
+
+      const weaponUpgradeTemplates = [
+        {
+          id: "damage",
+          name: "Power Shot",
+          icon: "DM",
+          describeWithRarity: (_s, mul) => `+${Math.round(6 * mul)} damage`,
+          applyWithRarity: (s, mul) => {
+            const amount = Math.round(6 * mul);
+            s.damage += amount;
+          }
+        },
+        {
+          id: "fireRate",
+          name: "Rapid Tome",
+          icon: "FR",
+          describeWithRarity: (_s, mul) => {
+            const factor = Math.max(0.78, 1 - 0.1 * mul);
+            return `-${Math.round((1 - factor) * 100)}% fire interval`;
+          },
+          applyWithRarity: (s, mul) => {
+            const factor = Math.max(0.78, 1 - 0.1 * mul);
+            s.fireInterval = Math.max(0.1, s.fireInterval * factor);
+          }
+        },
+        {
+          id: "range",
+          name: "Range",
+          icon: "RG",
+          describeWithRarity: (_s, mul) => `+${Math.round(90 * mul)} range`,
+          applyWithRarity: (s, mul) => {
+            const amount = Math.round(90 * mul);
+            s.range += amount;
+          }
+        },
+        {
+          id: "projSpeed",
+          name: "Swift Bolts",
+          icon: "PS",
+          describeWithRarity: (_s, mul) => `+${Math.round(60 * mul)} projectile speed`,
+          applyWithRarity: (s, mul) => {
+            const amount = Math.round(60 * mul);
+            s.projectileSpeed += amount;
+          }
+        },
+        {
+          id: "multishot",
+          name: "Split Wand",
+          icon: "MS",
+          describeWithRarity: (_s, _mul, rarityId) => {
+            const amount = rarityId === "epic" ? 2 : 1;
+            return `+${amount} projectile per attack`;
+          },
+          applyWithRarity: (s, mul, rarityId) => {
+            const amount = rarityId === "epic" ? 2 : 1;
+            s.multishot += amount;
+          }
+        },
+        {
+          id: "critMod",
+          name: "Execution Edge",
+          icon: "CR",
+          describeWithRarity: (_s, mul) => `+${(0.25 * mul).toFixed(2)} crit damage modifier`,
+          applyWithRarity: (s, mul) => {
+            const amount = +(0.25 * mul).toFixed(2);
+            s.critDamageModifier += amount;
+          }
+        }
+      ];
+
+      const rarityTable = [
+        { id: "common", label: "Common", weight: 60, multiplier: 1.0 },
+        { id: "uncommon", label: "Uncommon", weight: 25, multiplier: 1.3 },
+        { id: "rare", label: "Rare", weight: 11, multiplier: 1.7 },
+        { id: "epic", label: "Epic", weight: 4, multiplier: 2.2 }
+      ];
+
+      function getRandomUpgrades(count) {
+        const source = buildUpgradeOptions();
+        const chosen = [];
+        while (source.length > 0 && chosen.length < count) {
+          const idx = Math.floor(Math.random() * source.length);
+          chosen.push(source[idx]);
+          source.splice(idx, 1);
+        }
+        return chosen;
+      }
+
+      function rollUpgradeRarity() {
+        const weights = rarityTable.map((r) => r.weight);
+        // Luck shifts weight from common -> higher tiers.
+        const shift = Math.min(28, player.luck * 1.6);
+        weights[0] = Math.max(18, weights[0] - shift);
+        weights[1] += shift * 0.45;
+        weights[2] += shift * 0.35;
+        weights[3] += shift * 0.2;
+
+        const total = weights.reduce((a, b) => a + b, 0);
+        let roll = Math.random() * total;
+        for (let i = 0; i < rarityTable.length; i++) {
+          roll -= weights[i];
+          if (roll <= 0) return rarityTable[i];
+        }
+        return rarityTable[0];
+      }
+
+      function getWeaponStats(weaponKey) {
+        return player.weaponStats[weaponKey];
+      }
+
+      function getOwnedWeaponKeys() {
+        return [player.baseWeapon, ...player.weapons];
+      }
+
+      function getWeaponLabel(weaponKey) {
+        if (weaponKey === "Pistol") return "Pistol";
+        if (weaponKey === "Sniper") return "Sniper";
+        if (weaponKey === "explosiveCannon") return "Explosive Canon";
+        if (weaponKey === "shotgun") return "Shotgun";
+        if (weaponKey === "magicBook") return "Magik Book";
+        if (weaponKey === "potionFlask") return "Potion Flask";
+        if (weaponKey === "sword") return "Sword";
+        return weaponKey;
+      }
+
+      function getWeaponIcon(weaponKey) {
+        if (weaponKey === "Pistol") return "PI";
+        if (weaponKey === "Sniper") return "SN";
+        if (weaponKey === "explosiveCannon") return "CA";
+        if (weaponKey === "shotgun") return "SG";
+        if (weaponKey === "magicBook") return "BK";
+        if (weaponKey === "potionFlask") return "PF";
+        if (weaponKey === "sword") return "SW";
+        return "??";
+      }
+
+      function getIconGlyph(iconKey) {
+        const map = {
+          PI: "🔫",
+          SN: "🎯",
+          CA: "💣",
+          SG: "🔰",
+          BK: "📘",
+          PF: "🧪",
+          SW: "🗡",
+          HP: "❤",
+          SP: "➤",
+          LK: "☘",
+          PR: "◈",
+          PC: "⬡",
+          DF: "⚑",
+          DM: "✦",
+          FR: "⏱",
+          RG: "◎",
+          PS: "➹",
+          MS: "✹",
+          CR: "✧",
+          UP: "⬢"
+        };
+        return map[iconKey] || "⬢";
+      }
+
+      function buildUpgradeOptions() {
+        const options = [];
+        for (const p of playerUpgradeTemplates) {
+          options.push({
+            id: p.id,
+            targetKey: "player",
+            name: p.name,
+            icon: p.icon || "UP",
+            describeWithRarity: (rarity) => p.describeWithRarity(rarity.multiplier, rarity.id),
+            applyWithRarity: (rarity) => p.applyWithRarity(rarity.multiplier, rarity.id)
+          });
+        }
+        for (const weaponKey of getOwnedWeaponKeys()) {
+          const ws = getWeaponStats(weaponKey);
+          if (!ws) continue;
+          for (const t of weaponUpgradeTemplates) {
+            if ((weaponKey === "sword" || weaponKey === "magicBook") && (t.id === "multishot" || t.id === "projSpeed")) continue;
+            options.push({
+              id: `${weaponKey}_${t.id}`,
+              targetKey: weaponKey,
+              name: t.name,
+              icon: t.icon || "UP",
+              describeWithRarity: (rarity) => t.describeWithRarity(ws, rarity.multiplier, rarity.id),
+              applyWithRarity: (rarity) => t.applyWithRarity(ws, rarity.multiplier, rarity.id)
+            });
+          }
+        }
+        return options;
+      }
+
+      function renderUpgradeChoices() {
+        const baseOptions = getRandomUpgrades(3);
+        const options = baseOptions.map((o) => {
+          const rarity = rollUpgradeRarity();
+          const targetLabel = o.targetKey === "player" ? "Player" : getWeaponLabel(o.targetKey);
+          const effectText = o.describeWithRarity(rarity);
+          return {
+            ...o,
+            rarity,
+            fullName: `[${rarity.label}] [${targetLabel}] ${o.name}`,
+            description: effectText,
+            apply: () => o.applyWithRarity(rarity)
+          };
+        });
+        upgradeListEl.innerHTML = "";
+        for (const option of options) {
+          const btn = document.createElement("button");
+          btn.className = `upgrade-btn rarity-${option.rarity.id}`;
+          btn.textContent = `${option.fullName} - ${option.description}`;
+          btn.addEventListener("click", () => {
+            option.apply();
+            addUpgradeRecord(`${option.id}_${option.rarity.id}`, option.fullName, option.icon || "UP");
+            closeUpgradeMenu();
+          });
+          upgradeListEl.appendChild(btn);
+        }
+      }
+
+      function openUpgradeMenu() {
+        upgradeOpen = true;
+        refreshesLeft = 1;
+        refreshUpgradesBtn.textContent = `Refresh (${refreshesLeft})`;
+        renderUpgradeChoices();
+        upgradeUI.style.display = "flex";
+      }
+
+      function closeUpgradeMenu() {
+        upgradeOpen = false;
+        upgradeUI.style.display = "none";
+      }
+
+      function getChestOptions() {
+        const owned = new Set(player.weapons);
+        const available = weaponCatalog.filter((w) => !owned.has(w.id));
+        const options = [];
+        while (available.length > 0 && options.length < 3) {
+          const idx = Math.floor(Math.random() * available.length);
+          options.push(available[idx]);
+          available.splice(idx, 1);
+        }
+        return options;
+      }
+
+      function openChestMenu(chest) {
+        chestOpen = true;
+        chestUI.style.display = "flex";
+        chestListEl.innerHTML = "";
+        const options = getChestOptions();
+        if (options.length === 0) {
+          const fallbackBtn = document.createElement("button");
+          fallbackBtn.className = "upgrade-btn";
+          fallbackBtn.textContent = "No new weapons left - +8 damage to current weapon";
+          fallbackBtn.addEventListener("click", () => {
+            const s = getWeaponStats(player.baseWeapon);
+            if (s) s.damage += 8;
+            closeChestMenu(chest);
+          });
+          chestListEl.appendChild(fallbackBtn);
+          return;
+        }
+        for (const option of options) {
+          const btn = document.createElement("button");
+          btn.className = "upgrade-btn";
+          btn.textContent = `${option.name} - ${option.description}`;
+          btn.addEventListener("click", () => {
+            player.weapons.push(option.id);
+            closeChestMenu(chest);
+          });
+          chestListEl.appendChild(btn);
+        }
+      }
+
+      function closeChestMenu(chest) {
+        chestOpen = false;
+        chestUI.style.display = "none";
+        if (chest) {
+          chest.opened = true;
+        }
+      }
+
+      function toggleInventory(forceValue) {
+        if (!gameStarted || gameOver || upgradeOpen || chestOpen) return;
+        inventoryOpen = typeof forceValue === "boolean" ? forceValue : !inventoryOpen;
+        if (inventoryOpen) {
+          renderInventory();
+          inventoryUI.style.display = "flex";
+        } else {
+          inventoryUI.style.display = "none";
+        }
+      }
+
+      function addUpgradeRecord(id, name, icon = "UP") {
+        if (!player.upgradeCounts[id]) {
+          player.upgradeCounts[id] = { name, icon, count: 0 };
+        }
+        player.upgradeCounts[id].count += 1;
+      }
+
+      function renderInventory() {
+        const upgradeRows = Object.values(player.upgradeCounts || {}).sort((a, b) => b.count - a.count);
+        const owned = [player.baseWeapon, ...player.weapons];
+        const weaponLines = owned.map((w) => {
+          const s = getWeaponStats(w);
+          const icon = getWeaponIcon(w);
+          if (!s) return `<li><span class="inv-icon">${getIconGlyph(icon)}</span><strong>${getWeaponLabel(w)}</strong></li>`;
+          return `<li><span class="inv-icon">${getIconGlyph(icon)}</span><strong>${getWeaponLabel(w)}</strong>: dmg ${Math.round(s.damage)}, fire ${s.fireInterval.toFixed(2)}s, range ${Math.floor(s.range)}, speed ${Math.round(s.projectileSpeed)}, multishot ${s.multishot}, pierce ${s.piercing}, crit x${s.critDamageModifier.toFixed(2)}</li>`;
+        }).join("");
+        const upgradeLines = upgradeRows.length
+          ? upgradeRows.map((u) => `<li><span class="inv-icon">${getIconGlyph(u.icon || "UP")}</span>${u.name} x${u.count}</li>`).join("")
+          : "<li>No level upgrades collected yet.</li>";
+
+        inventoryContentEl.innerHTML = `
+          <h2>Player Stats</h2>
+          <ul>
+            <li>Level: ${player.level}</li>
+            <li>HP: ${Math.ceil(player.hp)} / ${player.maxHp}</li>
+            <li>Move Speed: ${Math.round(player.speed)}</li>
+            <li>Luck: ${player.luck}</li>
+            <li>Precision: ${player.precision.toFixed(2)}</li>
+            <li>Piercing: ${player.piercing}</li>
+            <li>Difficulty: ${player.difficulty}</li>
+            <li>Max Enemies: ${player.maxEnemies}</li>
+          </ul>
+          <h2>Weapons</h2>
+          <ul>${weaponLines}</ul>
+          <h2>Upgrades Collected</h2>
+          <ul>${upgradeLines}</ul>
+        `;
+      }
+
+      function resetGame() {
+        const chosen = characterCatalog.find((c) => c.id === selectedCharacterId) || characterCatalog[0];
+        player = {
+          x: 0,
+          y: 0,
+          r: 16,
+          speed: chosen.speed,
+          hp: chosen.hp,
+          maxHp: chosen.hp,
+          level: 1,
+          xp: 0,
+          xpToNext: 12,
+          luck: 0,
+          precision: chosen.precision || 1,
+          piercing: 0,
+          difficulty: 0,
+          damage: chosen.damage,
+          fireInterval: chosen.fireInterval,
+          maxEnemies: 40,
+          spawnSpeedMultiplier: 1,
+          color: chosen.color,
+          baseWeapon: chosen.startingWeapon || "Pistol",
+          weaponStats: {
+            Pistol: { damage: 20, fireInterval: 0.28, range: 520, projectileSpeed: 520, multishot: 1, critDamageModifier: 1.75, piercing: 0 },
+            Sniper: { damage: 34, fireInterval: 0.62, range: 980, projectileSpeed: 620, multishot: 1, critDamageModifier: 2.3, piercing: 2 },
+            explosiveCannon: { damage: 38, fireInterval: 1.2, range: 650, projectileSpeed: 320, multishot: 1, critDamageModifier: 1.9, piercing: 0 },
+            shotgun: { damage: 24, fireInterval: 0.95, range: 460, projectileSpeed: 460, multishot: 5, critDamageModifier: 1.6, piercing: 0 },
+            magicBook: { damage: 9, fireInterval: 0.25, range: 95, projectileSpeed: 0, multishot: 1, critDamageModifier: 1.35, piercing: 0 },
+            potionFlask: { damage: 24, fireInterval: 1.45, range: 620, projectileSpeed: 270, multishot: 1, critDamageModifier: 1.8, piercing: 0 },
+            sword: { damage: 26, fireInterval: 0.65, range: 90, projectileSpeed: 0, multishot: 1, critDamageModifier: 1.7, piercing: 0 }
+          },
+          aimX: 0,
+          aimY: -1,
+          weapons: [],
+          upgradeCounts: {},
+          weaponTimers: {
+            explosiveCannon: 0,
+            shotgun: 0,
+            potionFlask: 0,
+            sword: 0
+          }
+        };
+        const starter = player.weaponStats[player.baseWeapon];
+        if (starter) {
+          starter.damage = chosen.damage;
+          starter.fireInterval = chosen.fireInterval;
+          starter.range = chosen.range;
+        }
+        if (player.baseWeapon === "shotgun" && !player.weapons.includes("shotgun")) {
+          player.weapons.push("shotgun");
+        }
+
+        enemies = [];
+        projectiles = [];
+        gems = [];
+        drops = [];
+        damageTexts = [];
+        chests = [];
+        orbitProjectiles = [];
+        particles = [];
+        pulses = [];
+        cages = [];
+        camX = player.x;
+        camY = player.y;
+        camYaw = 0;
+        screenShake = 0;
+        hurtOverlay = 0;
+
+        elapsed = 0;
+        spawnTimer = 0;
+        fireTimer = 0;
+        hitCooldown = 0;
+        gameOver = false;
+        upgradeOpen = false;
+        chestOpen = false;
+        inventoryOpen = false;
+        nextBossTime = BOSS_START_INTERVAL;
+        bossCount = 0;
+        lastTime = performance.now();
+
+        for (let i = 0; i < 8; i++) {
+          spawnEnemy();
+        }
+        setupCages();
+
+        gameOverUI.style.display = "none";
+        upgradeUI.style.display = "none";
+        chestUI.style.display = "none";
+        inventoryUI.style.display = "none";
+        mainMenuUI.style.display = "none";
+        gameStarted = true;
+      }
+
+      function spawnEnemy(isBoss = false, forcedType = null) {
+        const p = edgeSpawnPosition(30);
+        const typeRoll = Math.random();
+        const type = forcedType || (typeRoll < 0.55 ? "normal" : (typeRoll < 0.82 ? "bat" : "brute"));
+        const def = enemyTypeDefs[type] || enemyTypeDefs.normal;
+        const difficultyMul = 1 + player.difficulty * 0.18;
+        const hp = isBoss
+          ? (def.hpBase * 11 * difficultyMul + Math.random() * def.hpRand * 4)
+          : ((def.hpBase + Math.random() * def.hpRand) * difficultyMul);
+        const speed = isBoss
+          ? (def.speedBase * 1.1 * (1 + player.difficulty * 0.08))
+          : ((def.speedBase + Math.random() * def.speedRand) * (1 + player.difficulty * 0.06));
+        const radius = isBoss
+          ? (def.radiusMin * 2.2 + Math.random() * 4)
+          : (def.radiusMin + Math.random() * def.radiusRand);
+        const contactDamage = def.contactDamage + (isBoss ? 8 : 0);
+
+        enemies.push({
+          x: p.x,
+          y: p.y,
+          r: radius,
+          hp,
+          maxHp: hp,
+          speed,
+          isBoss,
+          enemyType: type,
+          contactDamage
+        });
+      }
+
+      function getCurrentBossInterval() {
+        return Math.max(BOSS_MIN_INTERVAL, BOSS_START_INTERVAL - bossCount * BOSS_INTERVAL_STEP);
+      }
+
+      function ensureAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        audioEnabled = true;
+      }
+
+      function tone(freq, duration, volume = 0.05, type = "square", start = 0) {
+        if (!audioEnabled || !audioCtx) return;
+        const t0 = audioCtx.currentTime + start;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t0);
+        osc.stop(t0 + duration + 0.02);
+      }
+
+      function noiseBurst(duration = 0.08, volume = 0.03, start = 0) {
+        if (!audioEnabled || !audioCtx) return;
+        const sr = audioCtx.sampleRate;
+        const len = Math.floor(sr * duration);
+        const buffer = audioCtx.createBuffer(1, len, sr);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+        const src = audioCtx.createBufferSource();
+        const gain = audioCtx.createGain();
+        const t0 = audioCtx.currentTime + start;
+        src.buffer = buffer;
+        gain.gain.setValueAtTime(volume, t0);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+        src.connect(gain);
+        gain.connect(audioCtx.destination);
+        src.start(t0);
+      }
+
+      function playSfx(name) {
+        if (!audioEnabled) return;
+        if (name === "projectileHit") {
+          tone(720, 0.06, 0.03, "square");
+          noiseBurst(0.04, 0.01);
+        } else if (name === "enemyDeath") {
+          tone(220, 0.08, 0.045, "sawtooth");
+          tone(140, 0.12, 0.03, "triangle", 0.03);
+        } else if (name === "playerHurt") {
+          tone(180, 0.12, 0.05, "square");
+          noiseBurst(0.07, 0.02);
+        } else if (name === "levelUp") {
+          tone(440, 0.1, 0.04, "triangle");
+          tone(660, 0.12, 0.045, "triangle", 0.08);
+          tone(880, 0.14, 0.05, "triangle", 0.16);
+        } else if (name === "bossSpawn") {
+          tone(120, 0.22, 0.06, "sawtooth");
+          tone(90, 0.28, 0.05, "square", 0.12);
+        } else if (name === "playerDeath") {
+          tone(200, 0.1, 0.06, "sawtooth");
+          tone(140, 0.15, 0.055, "sawtooth", 0.07);
+          tone(85, 0.24, 0.05, "triangle", 0.18);
+          noiseBurst(0.2, 0.03, 0.05);
+        }
+      }
+
+      function spawnParticles(x, y, color, count = 8, speed = 120, life = 0.35) {
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = speed * (0.4 + Math.random() * 0.9);
+          particles.push({
+            x, y,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            life,
+            maxLife: life,
+            color
+          });
+        }
+      }
+
+      function spawnPulse(x, y, color, radius = 28, life = 0.35) {
+        pulses.push({ x, y, color, radius, life, maxLife: life });
+      }
+
+      function getAimDir() {
+        const m = Math.hypot(player.aimX, player.aimY) || 1;
+        return { x: player.aimX / m, y: player.aimY / m };
+      }
+
+      function getShotDirToNearest(maxRange = Infinity) {
+        const nearest = getNearestEnemy(maxRange);
+        if (nearest) {
+          const dx = nearest.x - player.x;
+          const dy = nearest.y - player.y;
+          const m = Math.hypot(dx, dy) || 1;
+          return { x: dx / m, y: dy / m };
+        }
+        return null;
+      }
+
+      function rollCrit(weaponKey, baseDamage) {
+        const ws = getWeaponStats(weaponKey);
+        const critChance = clamp(0.015 + player.luck * 0.004, 0, 0.35);
+        const isCrit = Math.random() < critChance;
+        const dmg = isCrit && ws ? baseDamage * ws.critDamageModifier : baseDamage;
+        return { damage: dmg, isCrit };
+      }
+
+      function setupCages() {
+        cages = [];
+        const locked = characterCatalog.filter((c) => !unlockedCharacters[c.id]);
+        for (let i = 0; i < locked.length; i++) {
+          const c = locked[i];
+          const angle = (i / Math.max(1, locked.length)) * Math.PI * 2 + 0.6;
+          const dist = 880 + i * 320;
+          cages.push({
+            id: `cage-${c.id}`,
+            charId: c.id,
+            x: Math.cos(angle) * dist,
+            y: Math.sin(angle) * dist,
+            r: 34,
+            progress: 0,
+            miniBossSpawned: false,
+            miniBossDefeated: false
+          });
+        }
+      }
+
+      function spawnCageMiniBoss(cage) {
+        const difficultyMul = 1 + player.difficulty * 0.18;
+        enemies.push({
+          x: cage.x + 50,
+          y: cage.y - 30,
+          r: 24,
+          hp: 320 * difficultyMul,
+          maxHp: 320 * difficultyMul,
+          speed: 34 * (1 + player.difficulty * 0.08),
+          isBoss: false,
+          isMiniBoss: true,
+          unlockCharId: cage.charId,
+          enemyType: "brute",
+          contactDamage: 18
+        });
+        cage.miniBossSpawned = true;
+        spawnPulse(cage.x, cage.y, "rgba(255,120,80,0.95)", 110, 0.7);
+      }
+
+      function spawnGem(x, y, amount = 1) {
+        gems.push({
+          x, y,
+          r: 6,
+          vx: 0,
+          vy: 0,
+          value: amount
+        });
+      }
+
+      function trySpawnSpecialDrop(x, y) {
+        const roll = Math.random();
+        const luckScale = 1 + player.luck * 0.08;
+        const healthChance = 0.005 * luckScale;
+        const magnetChance = 0.0035 * luckScale;
+        const bombChance = 0.0025 * luckScale;
+        if (roll < healthChance) {
+          drops.push({ x, y, r: 9, type: "health", vy: -25 });
+        } else if (roll < healthChance + magnetChance) {
+          drops.push({ x, y, r: 10, type: "magnet", vy: -25 });
+        } else if (roll < healthChance + magnetChance + bombChance) {
+          drops.push({ x, y, r: 10, type: "bomb", vy: -25 });
+        }
+      }
+
+      function addDamageText(x, y, amount, isCrit = false) {
+        damageTexts.push({
+          x,
+          y,
+          value: amount,
+          life: 0.55,
+          isCrit
+        });
+      }
+
+      function damageEnemy(e, amount, hitX, hitY, isCrit = false) {
+        e.hp -= amount;
+        addDamageText(hitX, hitY - e.r, Math.round(amount), isCrit);
+        spawnParticles(hitX, hitY, "#ffd36b", 4, 90, 0.2);
+        playSfx("projectileHit");
+        if (e.hp <= 0) {
+          if (e.isMiniBoss) {
+            unlockedCharacters[e.unlockCharId] = true;
+            const cage = cages.find((c) => c.charId === e.unlockCharId);
+            if (cage) cage.miniBossDefeated = true;
+            spawnPulse(e.x, e.y, "rgba(120,255,160,0.95)", 120, 0.75);
+            playSfx("levelUp");
+            const idx = enemies.indexOf(e);
+            if (idx >= 0) enemies.splice(idx, 1);
+          } else if (e.isBoss) {
+            onBossKilled(e);
+          } else {
+            spawnGem(e.x, e.y, 1);
+            trySpawnSpecialDrop(e.x, e.y);
+            spawnParticles(e.x, e.y, "#ff6969", 16, 180, 0.45);
+            spawnPulse(e.x, e.y, "rgba(255,80,80,0.8)", 40, 0.28);
+            playSfx("enemyDeath");
+            const idx = enemies.indexOf(e);
+            if (idx >= 0) enemies.splice(idx, 1);
+          }
+          return true;
+        }
+        return false;
+      }
+
+      function onBossKilled(boss) {
+        spawnParticles(boss.x, boss.y, "#ffb347", 45, 260, 0.9);
+        spawnPulse(boss.x, boss.y, "rgba(255,170,80,0.95)", 150, 0.65);
+        screenShake = Math.max(screenShake, 14);
+        playSfx("enemyDeath");
+        const alive = [];
+        for (const e of enemies) {
+          if (e === boss) continue;
+          if (!e.isBoss) {
+            spawnGem(e.x, e.y, 1);
+          } else {
+            alive.push(e);
+          }
+        }
+        enemies = alive;
+        chests.push({
+          x: boss.x,
+          y: boss.y,
+          r: 14,
+          opened: false
+        });
+      }
+
+      function getNearestEnemy(maxRange = Infinity) {
+        if (enemies.length === 0) return null;
+        let nearest = null;
+        let best = Infinity;
+        const maxRange2 = maxRange * maxRange;
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          const d = dist2(player.x, player.y, e.x, e.y);
+          if (d < best && d <= maxRange2) {
+            best = d;
+            nearest = e;
+          }
+        }
+        return nearest;
+      }
+
+      function fireSecondaryWeapons(dt) {
+        if (player.weapons.includes("explosiveCannon")) {
+          const stats = getWeaponStats("explosiveCannon");
+          if (!stats) {
+            player.weaponTimers.explosiveCannon = 0;
+          } else {
+          player.weaponTimers.explosiveCannon += dt;
+          if (player.weaponTimers.explosiveCannon >= stats.fireInterval) {
+            player.weaponTimers.explosiveCannon = 0;
+            const dir = getShotDirToNearest(stats.range);
+            if (dir) {
+              projectiles.push({
+                x: player.x, y: player.y, vx: dir.x * stats.projectileSpeed, vy: dir.y * stats.projectileSpeed,
+                r: 8, damage: stats.damage, life: 2.2, kind: "cannon", aoe: 95, weaponKey: "explosiveCannon", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+              });
+            }
+          }
+          }
+        }
+
+        if (player.weapons.includes("shotgun")) {
+          const stats = getWeaponStats("shotgun");
+          if (!stats) {
+            player.weaponTimers.shotgun = 0;
+          } else {
+          player.weaponTimers.shotgun += dt;
+          if (player.weaponTimers.shotgun >= stats.fireInterval) {
+            player.weaponTimers.shotgun = 0;
+            const dir = getShotDirToNearest(stats.range);
+            if (dir) {
+              const spreadN = Math.max(1, stats.multishot);
+              const center = (spreadN - 1) / 2;
+              const spreadStep = 0.14 / Math.max(0.55, player.precision);
+              for (let i = 0; i < spreadN; i++) {
+                const offset = i - center;
+                const a = offset * spreadStep;
+                const c = Math.cos(a), s = Math.sin(a);
+                const rx = dir.x * c - dir.y * s;
+                const ry = dir.x * s + dir.y * c;
+                projectiles.push({
+                  x: player.x, y: player.y, vx: rx * stats.projectileSpeed, vy: ry * stats.projectileSpeed,
+                  r: 4, damage: stats.damage, life: 0.55, kind: "shotgun", weaponKey: "shotgun", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+                });
+              }
+            }
+          }
+          }
+        }
+
+        if (player.weapons.includes("potionFlask")) {
+          const stats = getWeaponStats("potionFlask");
+          if (!stats) {
+            player.weaponTimers.potionFlask = 0;
+          } else {
+          player.weaponTimers.potionFlask += dt;
+          if (player.weaponTimers.potionFlask >= stats.fireInterval) {
+            player.weaponTimers.potionFlask = 0;
+            const dir = getShotDirToNearest(stats.range);
+            if (dir) {
+              projectiles.push({
+                x: player.x, y: player.y, vx: dir.x * stats.projectileSpeed, vy: dir.y * stats.projectileSpeed,
+                r: 7, damage: stats.damage, life: 2.4, kind: "flask", aoe: 120, weaponKey: "potionFlask", pierceLeft: Math.max(0, Math.floor((stats.piercing || 0) + player.piercing))
+              });
+            }
+          }
+          }
+        }
+
+        if (player.weapons.includes("sword")) {
+          const stats = getWeaponStats("sword");
+          if (!stats) {
+            player.weaponTimers.sword = 0;
+          } else {
+          player.weaponTimers.sword += dt;
+          if (player.weaponTimers.sword >= stats.fireInterval) {
+            player.weaponTimers.sword = 0;
+            for (const e of enemies.slice()) {
+              if (dist2(player.x, player.y, e.x, e.y) <= stats.range * stats.range) {
+                const crit = rollCrit("sword", stats.damage);
+                damageEnemy(e, crit.damage, e.x, e.y, crit.isCrit);
+              }
+            }
+          }
+          }
+        }
+
+        if (player.weapons.includes("magicBook")) {
+          const stats = getWeaponStats("magicBook");
+          if (stats) {
+            const needed = 2;
+            while (orbitProjectiles.length < needed) {
+              orbitProjectiles.push({ angle: Math.random() * Math.PI * 2, r: 7 });
+            }
+            while (orbitProjectiles.length > needed) {
+              orbitProjectiles.pop();
+            }
+            for (const orb of orbitProjectiles) {
+              orb.angle += dt * 2.9;
+              orb.x = player.x + Math.cos(orb.angle) * 70;
+              orb.y = player.y + Math.sin(orb.angle) * 70;
+              for (const e of enemies.slice()) {
+                const rr = orb.r + e.r;
+                if (dist2(orb.x, orb.y, e.x, e.y) <= rr * rr) {
+                  const crit = rollCrit("magicBook", stats.damage * dt * 2.2);
+                  damageEnemy(e, crit.damage, orb.x, orb.y, crit.isCrit);
+                }
+              }
+            }
+          }
+        } else {
+          orbitProjectiles = [];
+        }
+      }
+
+      function levelUp() {
+        player.level++;
+        player.maxHp += 6;
+        player.hp = clamp(player.hp + 8, 0, player.maxHp);
+        if (player.level % 4 === 0) {
+          player.maxEnemies += 5;
+        }
+        player.xp = 0;
+        player.xpToNext = Math.floor(player.xpToNext * 1.28 + 3);
+        spawnParticles(player.x, player.y, "#74a6ff", 24, 170, 0.6);
+        spawnPulse(player.x, player.y, "rgba(116,166,255,0.9)", 90, 0.55);
+        playSfx("levelUp");
+        openUpgradeMenu();
+      }
+
+      function shootAtNearestEnemy() {
+        const primaryStats = getWeaponStats(player.baseWeapon);
+        if (!primaryStats) return;
+        const dir = getShotDirToNearest(primaryStats.range);
+        if (!dir) return;
+        const dx = dir.x;
+        const dy = dir.y;
+
+        const bulletCount = Math.max(1, primaryStats.multishot);
+        const spreadStep = 0.16 / Math.max(0.55, player.precision);
+        const center = (bulletCount - 1) / 2;
+
+        for (let i = 0; i < bulletCount; i++) {
+          const angleOffset = (i - center) * spreadStep;
+          const cos = Math.cos(angleOffset);
+          const sin = Math.sin(angleOffset);
+          const dirX = dx * cos - dy * sin;
+          const dirY = dx * sin + dy * cos;
+
+          projectiles.push({
+            x: player.x,
+            y: player.y,
+            vx: dirX * primaryStats.projectileSpeed,
+            vy: dirY * primaryStats.projectileSpeed,
+            r: 5,
+            damage: primaryStats.damage,
+            life: 1.0,
+            kind: player.baseWeapon === "Sniper" ? "sniper" : "pistol",
+            weaponKey: player.baseWeapon,
+            pierceLeft: Math.max(0, Math.floor((primaryStats.piercing || 0) + player.piercing))
+          });
+        }
+      }
+
+      function update(dt) {
+        if (!gameStarted || gameOver || upgradeOpen || chestOpen || inventoryOpen) return;
+
+        elapsed += dt;
+        spawnTimer += dt;
+        fireTimer += dt;
+        hitCooldown = Math.max(0, hitCooldown - dt);
+
+        const spawnInterval = Math.max(0.14, (0.95 - elapsed * 0.012) / player.spawnSpeedMultiplier);
+        while (spawnTimer >= spawnInterval) {
+          spawnTimer -= spawnInterval;
+          if (enemies.length < player.maxEnemies) {
+            spawnEnemy(false);
+          }
+          if (elapsed > 30 && Math.random() < 0.25 && enemies.length < player.maxEnemies) {
+            spawnEnemy(false);
+          }
+        }
+
+        while (elapsed >= nextBossTime) {
+          bossCount++;
+          const before = enemies.length;
+          spawnEnemy(true);
+          if (enemies.length > before) {
+            const b = enemies[enemies.length - 1];
+            spawnPulse(b.x, b.y, "rgba(255,120,80,0.95)", 180, 0.8);
+            spawnParticles(b.x, b.y, "#ff7a4d", 30, 220, 0.8);
+            screenShake = Math.max(screenShake, 10);
+            playSfx("bossSpawn");
+          }
+          nextBossTime += getCurrentBossInterval();
+        }
+
+        for (const cage of cages) {
+          if (cage.miniBossDefeated) continue;
+          const inside = dist2(player.x, player.y, cage.x, cage.y) <= (cage.r + 80) * (cage.r + 80);
+          if (!cage.miniBossSpawned) {
+            if (inside) {
+              cage.progress += dt;
+              if (cage.progress >= cageUnlockProgressRequired) {
+                spawnCageMiniBoss(cage);
+              }
+            } else {
+              cage.progress = Math.max(0, cage.progress - dt * 0.75);
+            }
+          }
+        }
+
+        const primaryStats = getWeaponStats(player.baseWeapon);
+        if (primaryStats && fireTimer >= primaryStats.fireInterval) {
+          fireTimer -= primaryStats.fireInterval;
+          shootAtNearestEnemy();
+        }
+        fireSecondaryWeapons(dt);
+
+        let mx = 0, my = 0;
+        if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) my -= 1;
+        if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) my += 1;
+        if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) mx -= 1;
+        if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) mx += 1;
+
+        if (mx !== 0 || my !== 0) {
+          const rightBase = rotateVec(1, -1, -camYaw);
+          const upBase = rotateVec(-1, -1, -camYaw);
+          let wx = rightBase.x * mx + upBase.x * (-my);
+          let wy = rightBase.y * mx + upBase.y * (-my);
+          const m = Math.hypot(wx, wy);
+          wx /= m;
+          wy /= m;
+
+          const h0 = getTerrainHeight(player.x, player.y);
+          const sampleDist = 12;
+          const h1 = getTerrainHeight(player.x + wx * sampleDist, player.y + wy * sampleDist);
+          const slope = (h1 - h0) / sampleDist;
+          const slopeSpeedFactor = clamp(1 - slope * 0.95, 0.55, 1.35);
+          player.aimX = wx;
+          player.aimY = wy;
+
+          player.x += wx * player.speed * slopeSpeedFactor * dt;
+          player.y += wy * player.speed * slopeSpeedFactor * dt;
+          resolveObstacleCollision(player, dt);
+        }
+        camX = player.x;
+        camY = player.y;
+        if (keys.has("q") || keys.has("Q")) camYaw -= dt * 1.2;
+        if (keys.has("e") || keys.has("E")) camYaw += dt * 1.2;
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          let dx = player.x - e.x;
+          let dy = player.y - e.y;
+          const m = Math.hypot(dx, dy) || 1;
+          dx /= m;
+          dy /= m;
+          e.x += dx * e.speed * dt;
+          e.y += dy * e.speed * dt;
+          resolveObstacleCollision(e);
+
+          const rr = e.r + player.r;
+          if (dist2(e.x, e.y, player.x, player.y) <= rr * rr && hitCooldown <= 0) {
+            player.hp -= e.contactDamage || (e.isBoss ? 18 : 10);
+            hitCooldown = 0.28;
+            hurtOverlay = 0.35;
+            screenShake = Math.max(screenShake, 6);
+            spawnParticles(player.x, player.y, "#ff8a8a", 10, 140, 0.35);
+            playSfx("playerHurt");
+            if (player.hp <= 0) {
+              player.hp = 0;
+              endGame();
+              return;
+            }
+          }
+        }
+
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+          const p = projectiles[i];
+          p.life -= dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+
+          if (p.life <= 0 || dist2(p.x, p.y, camX, camY) > 3600 * 3600) {
+            projectiles.splice(i, 1);
+            continue;
+          }
+
+          let obstacleHit = false;
+          const nearbyObs = getNearbyObstacles(p.x, p.y, p.r + 26);
+          for (const o of nearbyObs) {
+            if (dist2(p.x, p.y, o.x, o.y) <= (p.r + o.r * 0.88) * (p.r + o.r * 0.88)) {
+              obstacleHit = true;
+              break;
+            }
+          }
+          if (obstacleHit) {
+            projectiles.splice(i, 1);
+            continue;
+          }
+
+          let hit = false;
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const e = enemies[j];
+            const rr = p.r + e.r;
+            if (dist2(p.x, p.y, e.x, e.y) <= rr * rr) {
+              hit = true;
+              let damageAmount = p.damage;
+              if (p.kind === "shotgun") {
+                const d = Math.hypot(player.x - e.x, player.y - e.y);
+                const near = 70;
+                const far = 520;
+                const t = clamp((d - near) / (far - near), 0, 1);
+                const mult = 1.8 - t * 1.15; // near: strong, far: weaker
+                damageAmount = p.damage * mult;
+              } else if (p.weaponKey === "Sniper" || p.kind === "sniper") {
+                const d = Math.hypot(player.x - e.x, player.y - e.y);
+                const t = clamp(d / 1100, 0, 1);
+                const mult = 1 + t * 1.35; // farther target = higher damage
+                damageAmount = p.damage * mult;
+              }
+              const crit = rollCrit(p.weaponKey || player.baseWeapon, damageAmount);
+              const killed = damageEnemy(e, crit.damage, p.x, p.y, crit.isCrit);
+              if (killed) {
+                // no-op: handled in damageEnemy
+              }
+              if ((p.kind === "cannon" || p.kind === "flask") && p.aoe) {
+                for (const target of enemies.slice()) {
+                  if (target === e) continue;
+                  if (dist2(p.x, p.y, target.x, target.y) <= p.aoe * p.aoe) {
+                    const aoeCrit = rollCrit(p.weaponKey || player.baseWeapon, p.damage * 0.65);
+                    damageEnemy(target, aoeCrit.damage, p.x, p.y, aoeCrit.isCrit);
+                  }
+                }
+              }
+              if ((p.pierceLeft || 0) > 0) {
+                p.pierceLeft -= 1;
+                hit = false;
+              }
+              break;
+            }
+          }
+
+          if (hit) projectiles.splice(i, 1);
+        }
+
+        const magnetRange = 160;
+        const collectRange = player.r + 10;
+
+        for (let i = gems.length - 1; i >= 0; i--) {
+          const g = gems[i];
+          const dx = player.x - g.x;
+          const dy = player.y - g.y;
+          const d = Math.hypot(dx, dy) || 1;
+
+          if (d < magnetRange) {
+            const pull = 900 * (1 - d / magnetRange) + 220;
+            g.vx += (dx / d) * pull * dt;
+            g.vy += (dy / d) * pull * dt;
+          }
+
+          g.vx *= 0.90;
+          g.vy *= 0.90;
+          g.x += g.vx * dt;
+          g.y += g.vy * dt;
+
+          if (d <= collectRange) {
+            player.xp += g.value;
+            gems.splice(i, 1);
+
+            if (player.xp >= player.xpToNext) {
+              levelUp();
+            }
+          }
+        }
+
+        for (let i = drops.length - 1; i >= 0; i--) {
+          const d = drops[i];
+          const rr = d.r + player.r;
+          if (dist2(d.x, d.y, player.x, player.y) <= rr * rr) {
+            if (d.type === "health") {
+              player.hp = clamp(player.hp + 28, 0, player.maxHp);
+            } else if (d.type === "magnet") {
+              for (let j = gems.length - 1; j >= 0; j--) {
+                player.xp += gems[j].value;
+                gems.splice(j, 1);
+              }
+              while (player.xp >= player.xpToNext) levelUp();
+            } else if (d.type === "bomb") {
+              for (const e of enemies.slice()) {
+                const ez = getTerrainHeight(e.x, e.y);
+                const ep = toIso(e.x, e.y, ez);
+                if (ep.x >= -80 && ep.x <= W + 80 && ep.y >= -80 && ep.y <= H + 80) {
+                  damageEnemy(e, e.maxHp * 2, e.x, e.y);
+                }
+              }
+            }
+            drops.splice(i, 1);
+          }
+        }
+
+        for (let i = chests.length - 1; i >= 0; i--) {
+          const c = chests[i];
+          if (c.opened) {
+            chests.splice(i, 1);
+            continue;
+          }
+          const rr = c.r + player.r;
+          if (dist2(c.x, c.y, player.x, player.y) <= rr * rr) {
+            openChestMenu(c);
+          }
+        }
+
+        for (let i = damageTexts.length - 1; i >= 0; i--) {
+          const t = damageTexts[i];
+          t.life -= dt;
+          t.y -= 38 * dt;
+          if (t.life <= 0) {
+            damageTexts.splice(i, 1);
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.life -= dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        for (let i = pulses.length - 1; i >= 0; i--) {
+          const p = pulses[i];
+          p.life -= dt;
+          p.radius += 120 * dt;
+          if (p.life <= 0) pulses.splice(i, 1);
+        }
+
+        screenShake = Math.max(0, screenShake - 22 * dt);
+        hurtOverlay = Math.max(0, hurtOverlay - 1.5 * dt);
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = "#0d1f12";
+        ctx.fillRect(0, 0, W, H);
+
+        // Draw terrain as uneven isometric tiles.
+        const range = 1700;
+        const minX = Math.floor((camX - range) / TERRAIN_TILE) * TERRAIN_TILE;
+        const maxX = Math.floor((camX + range) / TERRAIN_TILE) * TERRAIN_TILE;
+        const minY = Math.floor((camY - range) / TERRAIN_TILE) * TERRAIN_TILE;
+        const maxY = Math.floor((camY + range) / TERRAIN_TILE) * TERRAIN_TILE;
+        for (let y = minY; y <= maxY; y += TERRAIN_TILE) {
+          for (let x = minX; x <= maxX; x += TERRAIN_TILE) {
+            const h1 = getTerrainHeight(x, y);
+            const h2 = getTerrainHeight(x + TERRAIN_TILE, y);
+            const h3 = getTerrainHeight(x + TERRAIN_TILE, y + TERRAIN_TILE);
+            const h4 = getTerrainHeight(x, y + TERRAIN_TILE);
+            const avg = (h1 + h2 + h3 + h4) * 0.25;
+
+            const p1 = toIso(x, y, h1);
+            const p2 = toIso(x + TERRAIN_TILE, y, h2);
+            const p3 = toIso(x + TERRAIN_TILE, y + TERRAIN_TILE, h3);
+            const p4 = toIso(x, y + TERRAIN_TILE, h4);
+
+            if (
+              p1.x < -120 && p2.x < -120 && p3.x < -120 && p4.x < -120 ||
+              p1.x > W + 120 && p2.x > W + 120 && p3.x > W + 120 && p4.x > W + 120 ||
+              p1.y < -120 && p2.y < -120 && p3.y < -120 && p4.y < -120 ||
+              p1.y > H + 120 && p2.y > H + 120 && p3.y > H + 120 && p4.y > H + 120
+            ) {
+              continue;
+            }
+
+            const shade = Math.max(0, Math.min(1, (avg + TERRAIN_AMPLITUDE) / (TERRAIN_AMPLITUDE * 2)));
+            const g = Math.floor(42 + shade * 45);
+            ctx.fillStyle = `rgb(${18 + Math.floor(shade * 10)}, ${g}, ${22 + Math.floor(shade * 12)})`;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.lineTo(p4.x, p4.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(170,255,170,0.07)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawObstacle(o) {
+        const gz = getTerrainHeight(o.x, o.y);
+        const base = toIso(o.x, o.y, gz);
+        const top = toIso(o.x, o.y, gz + o.r * 1.7);
+        drawShadow(base.x, base.y, o.r * 0.9, o.r * 0.45);
+        ctx.save();
+        if (o.type === "tree") {
+          ctx.fillStyle = "#4b3220";
+          ctx.fillRect(base.x - 4, base.y - 14, 8, 18);
+          ctx.fillStyle = "#2f7b3e";
+          ctx.beginPath();
+          ctx.ellipse(top.x, top.y + 6, o.r * 0.95, o.r * 0.72, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#3e9a4f";
+          ctx.beginPath();
+          ctx.ellipse(top.x, top.y - 2, o.r * 0.75, o.r * 0.58, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "#5d676e";
+          ctx.beginPath();
+          ctx.ellipse(top.x, top.y + 8, o.r * 0.9, o.r * 0.68, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#7a8791";
+          ctx.beginPath();
+          ctx.ellipse(top.x - 3, top.y + 2, o.r * 0.72, o.r * 0.52, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawCage(c) {
+        if (c.miniBossDefeated) return;
+        const z = getTerrainHeight(c.x, c.y);
+        const b = toIso(c.x, c.y, z);
+        const t = toIso(c.x, c.y, z + 46);
+        drawShadow(b.x, b.y, 26, 12);
+        ctx.save();
+        ctx.strokeStyle = "#9b8b62";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.rect(t.x - 20, t.y - 12, 40, 30);
+        ctx.stroke();
+        for (let i = -2; i <= 2; i++) {
+          ctx.beginPath();
+          ctx.moveTo(t.x + i * 8, t.y - 12);
+          ctx.lineTo(t.x + i * 8, t.y + 18);
+          ctx.stroke();
+        }
+        const charData = characterCatalog.find((ch) => ch.id === c.charId);
+        ctx.fillStyle = charData ? charData.color : "#88f";
+        ctx.beginPath();
+        ctx.ellipse(t.x, t.y + 8, 8, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const pct = clamp(c.progress / cageUnlockProgressRequired, 0, 1);
+        if (!c.miniBossSpawned) {
+          ctx.fillStyle = "rgba(0,0,0,0.4)";
+          ctx.fillRect(t.x - 24, t.y - 20, 48, 5);
+          ctx.fillStyle = "#7dff9c";
+          ctx.fillRect(t.x - 24, t.y - 20, 48 * pct, 5);
+        }
+        ctx.restore();
+      }
+
+      function drawShadow(x, y, rx, ry) {
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.24)";
+        ctx.beginPath();
+        ctx.ellipse(x, y + 2, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawPlayer() {
+        const groundZ = getTerrainHeight(player.x, player.y);
+        const base = toIso(player.x, player.y, groundZ);
+        const p = toIso(player.x, player.y, groundZ + 20);
+        drawShadow(base.x, base.y, player.r * 0.65, player.r * 0.35);
+
+        const bodyColor = player.color || "#44f";
+        ctx.fillStyle = bodyColor === "#4df" ? "#2896aa" : (bodyColor === "#66f" ? "#4545c6" : "#2f39dd");
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + 6, player.r * 0.95, player.r * 0.72, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, player.r * 0.95, player.r * 0.72, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(p.x - 5, p.y - 3, 2.2, 0, Math.PI * 2);
+        ctx.arc(p.x + 5, p.y - 3, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawEnemy(e) {
+        const groundZ = getTerrainHeight(e.x, e.y);
+        const base = toIso(e.x, e.y, groundZ);
+        const p = toIso(e.x, e.y, groundZ + (e.isBoss ? 30 : 16));
+        drawShadow(base.x, base.y, e.r * 0.72, e.r * 0.4);
+        const def = enemyTypeDefs[e.enemyType] || enemyTypeDefs.normal;
+        const shadeColor = e.isMiniBoss ? "#5e4b17" : (e.isBoss ? "#3f0f0f" : def.colors.shade);
+        const topColor = e.isMiniBoss ? "#ffd24f" : def.colors.top;
+
+        ctx.fillStyle = shadeColor;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + 5, e.r * 0.96, e.r * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = topColor;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, e.r * 0.96, e.r * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const w = e.isBoss ? 40 : 24;
+        const h = 4;
+        const ratio = clamp(e.hp / e.maxHp, 0, 1);
+        const x = p.x - w / 2;
+        const y = p.y - e.r - 14;
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = "#7dff9c";
+        ctx.fillRect(x, y, w * ratio, h);
+        ctx.strokeStyle = "rgba(220,255,220,0.7)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+      }
+
+      function drawProjectiles() {
+        for (const p of projectiles) {
+          const groundZ = getTerrainHeight(p.x, p.y);
+          const base = toIso(p.x, p.y, groundZ);
+          const s = toIso(p.x, p.y, groundZ + 10);
+          drawShadow(base.x, base.y, p.r * 0.55, p.r * 0.3);
+          ctx.save();
+          if (p.kind === "cannon") {
+            ctx.fillStyle = "#ff9f43";
+            ctx.shadowColor = "rgba(255, 159, 67, 0.95)";
+            ctx.shadowBlur = 16;
+          } else if (p.kind === "sniper") {
+            ctx.fillStyle = "#59a4ff";
+            ctx.shadowColor = "rgba(89, 164, 255, 0.98)";
+            ctx.shadowBlur = 15;
+          } else if (p.kind === "flask") {
+            ctx.fillStyle = "#d57dff";
+            ctx.shadowColor = "rgba(213, 125, 255, 0.95)";
+            ctx.shadowBlur = 16;
+          } else if (p.kind === "shotgun") {
+            ctx.fillStyle = "#fff39f";
+            ctx.shadowColor = "rgba(255, 243, 159, 0.95)";
+            ctx.shadowBlur = 10;
+          } else {
+            ctx.fillStyle = "#ffd83a";
+            ctx.shadowColor = "rgba(255, 223, 92, 0.95)";
+            ctx.shadowBlur = 14;
+          }
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, p.r * 1.05, p.r * 0.82, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawOrbitProjectiles() {
+        for (const orb of orbitProjectiles) {
+          const groundZ = getTerrainHeight(orb.x, orb.y);
+          const base = toIso(orb.x, orb.y, groundZ);
+          const s = toIso(orb.x, orb.y, groundZ + 12);
+          drawShadow(base.x, base.y, orb.r * 0.58, orb.r * 0.3);
+          ctx.save();
+          ctx.fillStyle = "#b9a7ff";
+          ctx.shadowColor = "rgba(185, 167, 255, 0.95)";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, orb.r * 1.05, orb.r * 0.84, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawGems() {
+        for (const g of gems) {
+          const groundZ = getTerrainHeight(g.x, g.y);
+          const base = toIso(g.x, g.y, groundZ);
+          const s = toIso(g.x, g.y, groundZ + 8);
+          drawShadow(base.x, base.y, g.r * 0.5, g.r * 0.26);
+          ctx.save();
+          ctx.fillStyle = "#31ff6f";
+          ctx.shadowColor = "rgba(77, 255, 130, 1)";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, g.r * 0.95, g.r * 0.72, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawDrops() {
+        for (const d of drops) {
+          const groundZ = getTerrainHeight(d.x, d.y);
+          const base = toIso(d.x, d.y, groundZ);
+          const s = toIso(d.x, d.y, groundZ + 12);
+          drawShadow(base.x, base.y, d.r * 0.62, d.r * 0.34);
+          ctx.save();
+          if (d.type === "health") {
+            ctx.fillStyle = "#ff6b6b";
+            ctx.shadowColor = "rgba(255,110,110,0.9)";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, d.r, d.r * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(s.x - 1.5, s.y - 5, 3, 10);
+            ctx.fillRect(s.x - 5, s.y - 1.5, 10, 3);
+          } else if (d.type === "magnet") {
+            ctx.fillStyle = "#7ea1ff";
+            ctx.shadowColor = "rgba(126,161,255,0.95)";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, d.r, d.r * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#e7eeff";
+            ctx.font = "bold 12px monospace";
+            ctx.fillText("M", s.x - 4, s.y + 4);
+          } else if (d.type === "bomb") {
+            ctx.fillStyle = "#ffb347";
+            ctx.shadowColor = "rgba(255,179,71,0.95)";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, d.r, d.r * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#2a2a2a";
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, d.r * 0.45, d.r * 0.36, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawDamageTexts() {
+        for (const t of damageTexts) {
+          const alpha = clamp(t.life / 0.55, 0, 1);
+          const p = toIso(t.x, t.y, getTerrainHeight(t.x, t.y) + 24);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = t.isCrit ? "#ff9df5" : "#ffe98f";
+          ctx.font = "bold 14px monospace";
+          ctx.fillText(`${t.isCrit ? "CRIT " : ""}-${t.value}`, p.x - (t.isCrit ? 22 : 10), p.y);
+          ctx.restore();
+        }
+      }
+
+      function drawParticlesAndPulses() {
+        for (const p of particles) {
+          const alpha = clamp(p.life / p.maxLife, 0, 1);
+          const z = getTerrainHeight(p.x, p.y) + 10;
+          const s = toIso(p.x, p.y, z);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        for (const p of pulses) {
+          const alpha = clamp(p.life / p.maxLife, 0, 1);
+          const s = toIso(p.x, p.y, getTerrainHeight(p.x, p.y) + 2);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, p.radius * 0.6, p.radius * 0.35, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawChests() {
+        for (const c of chests) {
+          if (c.opened) continue;
+          const groundZ = getTerrainHeight(c.x, c.y);
+          const base = toIso(c.x, c.y, groundZ);
+          const s = toIso(c.x, c.y, groundZ + 12);
+          drawShadow(base.x, base.y, 13, 6);
+          ctx.save();
+          ctx.fillStyle = "#8a5a2f";
+          ctx.fillRect(s.x - 12, s.y - 9, 24, 18);
+          ctx.fillStyle = "#d7aa62";
+          ctx.fillRect(s.x - 12, s.y - 9, 24, 6);
+          ctx.strokeStyle = "#2b180a";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(s.x - 12, s.y - 9, 24, 18);
+          ctx.restore();
+        }
+      }
+
+      function drawUI() {
+        const pad = 14;
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(8, 8, 360, 164);
+
+        ctx.fillStyle = "#d6f5d6";
+        ctx.font = "20px monospace";
+        ctx.fillText(`Time: ${formatTime(elapsed)}`, pad, 32);
+        ctx.font = "14px monospace";
+        ctx.fillText("Rotate: Q/E", pad, 56);
+        ctx.fillText("Inventory: I", pad + 120, 56);
+
+        const bx = pad, by = 70, bw = 280, bh = 16;
+        const hpRatio = player.hp / player.maxHp;
+
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
+        ctx.fillRect(bx, by, bw, bh);
+
+        ctx.fillStyle = hpRatio > 0.35 ? "#57e37b" : "#ff5d5d";
+        ctx.fillRect(bx, by, bw * hpRatio, bh);
+
+        ctx.strokeStyle = "#cdeecd";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        const xpY = by + 30;
+        const xpRatio = clamp(player.xp / player.xpToNext, 0, 1);
+        ctx.fillStyle = "rgba(255,255,255,0.15)";
+        ctx.fillRect(bx, xpY, bw, bh);
+        ctx.fillStyle = "#4f8dff";
+        ctx.fillRect(bx, xpY, bw * xpRatio, bh);
+        ctx.strokeStyle = "#cdeecd";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, xpY, bw, bh);
+
+        // Icon strip near health bar: owned weapons + most-picked upgrades.
+        const iconY = xpY + 28;
+        let iconX = bx;
+        const drawTinyIcon = (x, y, key, fg) => {
+          ctx.save();
+          ctx.strokeStyle = fg;
+          ctx.fillStyle = fg;
+          ctx.lineWidth = 1.2;
+          if (key === "PI") {
+            ctx.fillRect(x + 5, y + 7, 10, 3);
+            ctx.fillRect(x + 12, y + 5, 4, 2);
+            ctx.fillRect(x + 7, y + 10, 3, 4);
+          } else if (key === "SN") {
+            ctx.beginPath(); ctx.arc(x + 12, y + 9, 5, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + 12, y + 4); ctx.lineTo(x + 12, y + 14); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + 7, y + 9); ctx.lineTo(x + 17, y + 9); ctx.stroke();
+          } else if (key === "CA") {
+            ctx.beginPath(); ctx.arc(x + 11, y + 10, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(x + 14, y + 5, 3, 2);
+          } else if (key === "SG") {
+            ctx.fillRect(x + 4, y + 7, 12, 2);
+            ctx.fillRect(x + 10, y + 9, 2, 5);
+          } else if (key === "SW") {
+            ctx.beginPath(); ctx.moveTo(x + 6, y + 12); ctx.lineTo(x + 15, y + 5); ctx.stroke();
+            ctx.fillRect(x + 8, y + 11, 4, 2);
+          } else if (key === "BK") {
+            ctx.strokeRect(x + 6, y + 5, 10, 8);
+            ctx.beginPath(); ctx.moveTo(x + 11, y + 5); ctx.lineTo(x + 11, y + 13); ctx.stroke();
+          } else if (key === "PF") {
+            ctx.beginPath(); ctx.moveTo(x + 9, y + 5); ctx.lineTo(x + 13, y + 5); ctx.lineTo(x + 15, y + 12); ctx.lineTo(x + 7, y + 12); ctx.closePath(); ctx.stroke();
+          } else if (key === "HP") {
+            ctx.beginPath(); ctx.arc(x + 9, y + 8, 2, 0, Math.PI * 2); ctx.arc(x + 13, y + 8, 2, 0, Math.PI * 2); ctx.lineTo(x + 11, y + 13); ctx.closePath(); ctx.fill();
+          } else if (key === "SP") {
+            ctx.beginPath(); ctx.moveTo(x + 6, y + 12); ctx.lineTo(x + 14, y + 9); ctx.lineTo(x + 6, y + 6); ctx.stroke();
+          } else if (key === "LK") {
+            ctx.beginPath(); ctx.arc(x + 9, y + 8, 2, 0, Math.PI * 2); ctx.arc(x + 13, y + 8, 2, 0, Math.PI * 2); ctx.arc(x + 11, y + 11, 2, 0, Math.PI * 2); ctx.fill();
+          } else if (key === "PR") {
+            ctx.beginPath(); ctx.moveTo(x + 11, y + 4); ctx.lineTo(x + 16, y + 9); ctx.lineTo(x + 11, y + 14); ctx.lineTo(x + 6, y + 9); ctx.closePath(); ctx.stroke();
+            ctx.fillRect(x + 10, y + 8, 2, 2);
+          } else if (key === "PC") {
+            ctx.beginPath(); ctx.moveTo(x + 6, y + 9); ctx.lineTo(x + 16, y + 9); ctx.stroke();
+            ctx.fillRect(x + 14, y + 7, 3, 4);
+            ctx.beginPath(); ctx.arc(x + 9, y + 9, 2, 0, Math.PI * 2); ctx.stroke();
+          } else if (key === "DF") {
+            ctx.fillRect(x + 8, y + 5, 2, 9);
+            ctx.beginPath(); ctx.moveTo(x + 10, y + 5); ctx.lineTo(x + 16, y + 7); ctx.lineTo(x + 10, y + 9); ctx.closePath(); ctx.fill();
+          } else if (key === "DM" || key === "CR") {
+            ctx.beginPath(); ctx.moveTo(x + 11, y + 4); ctx.lineTo(x + 13, y + 9); ctx.lineTo(x + 11, y + 14); ctx.lineTo(x + 9, y + 9); ctx.closePath(); ctx.stroke();
+          } else if (key === "FR") {
+            ctx.beginPath(); ctx.arc(x + 11, y + 9, 4, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + 11, y + 9); ctx.lineTo(x + 11, y + 6); ctx.stroke();
+          } else if (key === "RG") {
+            ctx.beginPath(); ctx.arc(x + 11, y + 9, 5, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x + 11, y + 9, 2, 0, Math.PI * 2); ctx.stroke();
+          } else if (key === "PS") {
+            ctx.beginPath(); ctx.moveTo(x + 6, y + 12); ctx.lineTo(x + 15, y + 6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + 13, y + 6); ctx.lineTo(x + 15, y + 6); ctx.lineTo(x + 14, y + 8); ctx.stroke();
+          } else if (key === "MS") {
+            ctx.fillRect(x + 10, y + 5, 2, 8);
+            ctx.fillRect(x + 7, y + 8, 8, 2);
+          } else {
+            ctx.fillRect(x + 8, y + 6, 6, 6);
+          }
+          ctx.restore();
+        };
+        const drawIconChip = (label, bg = "#2b3b2b", fg = "#e7ffe7") => {
+          ctx.fillStyle = bg;
+          ctx.fillRect(iconX, iconY, 24, 16);
+          ctx.strokeStyle = "rgba(220,255,220,0.75)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(iconX, iconY, 24, 16);
+          drawTinyIcon(iconX, iconY, label, fg);
+          iconX += 28;
+        };
+
+        const ownedWeapons = [player.baseWeapon, ...player.weapons];
+        for (const w of ownedWeapons) {
+          drawIconChip(getWeaponIcon(w), "#1f334d", "#d6ecff");
+        }
+        const topUpgrades = Object.values(player.upgradeCounts || {})
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+        for (const u of topUpgrades) {
+          drawIconChip(u.icon || "UP", "#3f304d", "#f3ddff");
+        }
+
+        const activeCage = cages.find((c) => !c.miniBossDefeated && dist2(player.x, player.y, c.x, c.y) <= (c.r + 110) * (c.r + 110));
+        if (activeCage && !activeCage.miniBossSpawned) {
+          const charData = characterCatalog.find((ch) => ch.id === activeCage.charId);
+          const p = Math.floor(clamp(activeCage.progress / cageUnlockProgressRequired, 0, 1) * 100);
+          ctx.fillStyle = "#ffe9a7";
+          ctx.fillText(`Rescue ${charData ? charData.name : "Survivor"}: ${p}%`, bx, xpY + 52);
+        } else if (activeCage && activeCage.miniBossSpawned) {
+          ctx.fillStyle = "#ffb69c";
+          ctx.fillText("Mini-boss spawned! Defeat it to unlock.", bx, xpY + 52);
+        }
+      }
+
+      function render() {
+        if (!gameStarted) {
+          drawBackground();
+          return;
+        }
+        const shakeAmount = screenShakeEnabled ? screenShake : 0;
+        const sx = shakeAmount > 0 ? (Math.random() * 2 - 1) * shakeAmount : 0;
+        const sy = shakeAmount > 0 ? (Math.random() * 2 - 1) * shakeAmount : 0;
+        ctx.save();
+        ctx.translate(sx, sy);
+        drawBackground();
+        // Painter order by world depth for isometric look.
+        gems.sort((a, b) => a.y - b.y);
+        drops.sort((a, b) => a.y - b.y);
+        chests.sort((a, b) => a.y - b.y);
+        projectiles.sort((a, b) => a.y - b.y);
+        const drawables = [];
+        const obs = getNearbyObstacles(camX, camY, 1300);
+        for (const o of obs) {
+          drawables.push({
+            key: toIso(o.x, o.y, getTerrainHeight(o.x, o.y)).y,
+            draw: () => drawObstacle(o)
+          });
+        }
+        for (const c of cages) {
+          if (c.miniBossDefeated) continue;
+          drawables.push({
+            key: toIso(c.x, c.y, getTerrainHeight(c.x, c.y)).y + 2,
+            draw: () => drawCage(c)
+          });
+        }
+        for (const e of enemies) {
+          drawables.push({
+            key: toIso(e.x, e.y, getTerrainHeight(e.x, e.y)).y,
+            draw: () => drawEnemy(e)
+          });
+        }
+        drawables.push({
+          key: toIso(player.x, player.y, getTerrainHeight(player.x, player.y)).y,
+          draw: () => drawPlayer()
+        });
+        drawables.sort((a, b) => a.key - b.key);
+
+        drawGems();
+        drawDrops();
+        drawChests();
+        drawProjectiles();
+        drawOrbitProjectiles();
+        for (const d of drawables) d.draw();
+        drawParticlesAndPulses();
+        drawDamageTexts();
+        drawUI();
+        ctx.restore();
+
+        if (hurtOverlay > 0) {
+          ctx.save();
+          ctx.fillStyle = `rgba(255, 40, 40, ${0.28 * hurtOverlay})`;
+          ctx.fillRect(0, 0, W, H);
+          ctx.restore();
+        }
+      }
+
+      function endGame() {
+        spawnParticles(player.x, player.y, "#ff5454", 40, 260, 1.0);
+        spawnPulse(player.x, player.y, "rgba(255,84,84,1)", 180, 0.85);
+        screenShake = Math.max(screenShake, 16);
+        playSfx("playerDeath");
+        gameOver = true;
+        finalTimeEl.textContent = `Time: ${formatTime(elapsed)}`;
+        finalLevelEl.textContent = `Level: ${player.level}`;
+        gameOverUI.style.display = "flex";
+      }
+
+      function loop(now) {
+        const dt = Math.min(0.033, (now - lastTime) / 1000);
+        lastTime = now;
+
+        update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      restartBtn.addEventListener("click", () => {
+        ensureAudio();
+        resetGame();
+      });
+      backToMenuBtn.addEventListener("click", () => {
+        gameOverUI.style.display = "none";
+        gameStarted = false;
+        inventoryOpen = false;
+        inventoryUI.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuCharactersEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuHomeEl.style.display = "block";
+        mainMenuUI.style.display = "flex";
+      });
+      endRunBtn.addEventListener("click", () => {
+        inventoryOpen = false;
+        inventoryUI.style.display = "none";
+        gameOver = false;
+        gameStarted = false;
+        upgradeOpen = false;
+        chestOpen = false;
+        gameOverUI.style.display = "none";
+        upgradeUI.style.display = "none";
+        chestUI.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuCharactersEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuHomeEl.style.display = "block";
+        mainMenuUI.style.display = "flex";
+      });
+      refreshUpgradesBtn.addEventListener("click", () => {
+        if (!upgradeOpen || refreshesLeft <= 0) return;
+        refreshesLeft--;
+        refreshUpgradesBtn.textContent = `Refresh (${refreshesLeft})`;
+        renderUpgradeChoices();
+      });
+      startGameBtn.addEventListener("click", () => {
+        if (!unlockedCharacters[selectedCharacterId]) return;
+        ensureAudio();
+        resetGame();
+      });
+      startRunBtn.addEventListener("click", () => {
+        menuHomeEl.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuCharactersEl.style.display = "block";
+        renderCharacterMenu();
+      });
+      openMultiplayerBtn.addEventListener("click", () => {
+        menuHomeEl.style.display = "none";
+        menuCharactersEl.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuMultiplayerEl.style.display = "block";
+        const saved = localStorage.getItem(PLAYER_NAME_KEY) || "";
+        playerNameInput.value = saved;
+        setLobbyStatus("Create or join a lobby.");
+      });
+      openOptionsBtn.addEventListener("click", () => {
+        menuHomeEl.style.display = "none";
+        menuCharactersEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuOptionsEl.style.display = "block";
+        toggleSfxBtn.textContent = `SFX: ${audioEnabled ? "ON" : "OFF"}`;
+        toggleShakeBtn.textContent = `Screen Shake: ${screenShakeEnabled ? "ON" : "OFF"}`;
+      });
+      backToHomeBtn.addEventListener("click", () => {
+        menuCharactersEl.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuHomeEl.style.display = "block";
+      });
+      backFromOptionsBtn.addEventListener("click", () => {
+        menuCharactersEl.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuHomeEl.style.display = "block";
+      });
+      backFromMultiplayerBtn.addEventListener("click", () => {
+        menuCharactersEl.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuHomeEl.style.display = "block";
+      });
+      toggleSfxBtn.addEventListener("click", () => {
+        if (!audioCtx) ensureAudio();
+        audioEnabled = !audioEnabled;
+        toggleSfxBtn.textContent = `SFX: ${audioEnabled ? "ON" : "OFF"}`;
+      });
+      toggleShakeBtn.addEventListener("click", () => {
+        screenShakeEnabled = !screenShakeEnabled;
+        toggleShakeBtn.textContent = `Screen Shake: ${screenShakeEnabled ? "ON" : "OFF"}`;
+      });
+      createLobbyBtn.addEventListener("click", async () => {
+        await createLobbyFlow();
+      });
+      joinLobbyBtn.addEventListener("click", async () => {
+        await joinLobbyFlow();
+      });
+      readyLobbyBtn.addEventListener("click", async () => {
+        if (!supabase || !lobbyId || !playerId) return;
+        localReady = !localReady;
+        await supabase
+          .from("lobby_players")
+          .update({ is_ready: localReady, character_id: selectedCharacterId, name: getPlayerName() })
+          .eq("lobby_id", lobbyId)
+          .eq("player_id", playerId);
+        await refreshLobbyState();
+      });
+      startLobbyRunBtn.addEventListener("click", async () => {
+        if (!supabase || !lobbyId || !isLobbyHost) return;
+        const { data: players } = await supabase.from("lobby_players").select("is_ready").eq("lobby_id", lobbyId);
+        if (!players || players.length === 0 || players.some((p) => !p.is_ready)) {
+          setLobbyStatus("All players must be ready.", true);
+          return;
+        }
+        const { error } = await supabase.from("lobbies").update({ state: "in_game" }).eq("id", lobbyId);
+        if (error) {
+          setLobbyStatus(`Could not start match: ${error.message}`, true);
+        }
+      });
+      leaveLobbyBtn.addEventListener("click", async () => {
+        await leaveCurrentLobby();
+      });
+
+      function renderCharacterMenu() {
+        characterListEl.innerHTML = "";
+        for (const c of characterCatalog) {
+          const locked = !unlockedCharacters[c.id];
+          const btn = document.createElement("button");
+          btn.className = `char-btn${selectedCharacterId === c.id ? " active" : ""}${locked ? " locked" : ""}`;
+          btn.textContent = locked
+            ? `${c.name} - LOCKED (Find cage + defeat mini-boss)`
+            : `${c.name} - ${c.description} (HP ${c.hp}, DMG ${c.damage})`;
+          btn.addEventListener("click", () => {
+            if (locked) return;
+            selectedCharacterId = c.id;
+            renderCharacterMenu();
+          });
+          characterListEl.appendChild(btn);
+        }
+        if (!unlockedCharacters[selectedCharacterId]) selectedCharacterId = "wanderer";
+        startGameBtn.disabled = !unlockedCharacters[selectedCharacterId];
+      }
+
+      function getOrCreatePlayerId() {
+        // Keep player identity unique per browser tab for easy local multiplayer testing.
+        let id = sessionStorage.getItem(PLAYER_ID_KEY);
+        if (!id) {
+          id = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+          sessionStorage.setItem(PLAYER_ID_KEY, id);
+        }
+        return id;
+      }
+
+      function getPlayerName() {
+        const v = (playerNameInput.value || "").trim();
+        const safe = v || localStorage.getItem(PLAYER_NAME_KEY) || "Player";
+        return safe.slice(0, 16);
+      }
+
+      function setLobbyStatus(text, isError = false) {
+        lobbyStatusEl.textContent = text;
+        lobbyStatusEl.style.color = isError ? "#ffb1b1" : "#d9f5d9";
+        if (isError) {
+          // Keep error feedback visible even when lobby panel has not opened yet.
+          showLobbyPanel(true);
+          console.error("[Lobby]", text);
+        } else {
+          console.log("[Lobby]", text);
+        }
+      }
+
+      function ensureSupabase() {
+        if (supabase) return supabase;
+        if (!window.supabase || SUPABASE_URL.includes("REPLACE_WITH_")) return null;
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        return supabase;
+      }
+
+      function randomLobbyCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let out = "";
+        for (let i = 0; i < 6; i++) out += chars[(Math.random() * chars.length) | 0];
+        return out;
+      }
+
+      function showLobbyPanel(show) {
+        lobbyPanelEl.style.display = show ? "block" : "none";
+      }
+
+      async function leaveCurrentLobby(silent = false) {
+        if (!supabase || !lobbyId || !playerId) {
+          lobbyId = null;
+          lobbyCode = "";
+          isLobbyHost = false;
+          localReady = false;
+          renderLobbyPlayers([]);
+          showLobbyPanel(false);
+          return;
+        }
+        if (lobbySub) {
+          await supabase.removeChannel(lobbySub);
+          lobbySub = null;
+        }
+        await supabase.from("lobby_players").delete().eq("lobby_id", lobbyId).eq("player_id", playerId);
+        const { data: leftRows } = await supabase.from("lobby_players").select("id").eq("lobby_id", lobbyId);
+        if (!leftRows || leftRows.length === 0) {
+          await supabase.from("lobbies").update({ state: "closed" }).eq("id", lobbyId);
+        }
+        lobbyId = null;
+        lobbyCode = "";
+        isLobbyHost = false;
+        localReady = false;
+        renderLobbyPlayers([]);
+        showLobbyPanel(false);
+        if (!silent) setLobbyStatus("Left lobby.");
+      }
+
+      function renderLobbyPlayers(players) {
+        lobbyPlayersEl.innerHTML = "";
+        for (const p of players) {
+          const li = document.createElement("li");
+          const role = p.player_id === playerId ? " (You)" : "";
+          const readyTxt = p.is_ready ? "READY" : "NOT READY";
+          li.textContent = `${p.name}${role} - ${p.character_id} - ${readyTxt}`;
+          lobbyPlayersEl.appendChild(li);
+        }
+      }
+
+      async function refreshLobbyState() {
+        if (!supabase || !lobbyId) return;
+        const { data: lobby } = await supabase.from("lobbies").select("id, code, host_player_id, state").eq("id", lobbyId).single();
+        if (!lobby) return;
+        lobbyCode = lobby.code;
+        lobbyCodeTextEl.textContent = lobby.code;
+        isLobbyHost = lobby.host_player_id === playerId;
+        startLobbyRunBtn.disabled = !isLobbyHost;
+        const { data: players } = await supabase
+          .from("lobby_players")
+          .select("player_id, name, character_id, is_ready, joined_at")
+          .eq("lobby_id", lobbyId)
+          .order("joined_at", { ascending: true });
+        renderLobbyPlayers(players || []);
+        const me = (players || []).find((p) => p.player_id === playerId);
+        localReady = !!(me && me.is_ready);
+        readyLobbyBtn.textContent = localReady ? "Set Not Ready" : "Set Ready";
+        setLobbyStatus(`Lobby ${lobby.code} - ${players ? players.length : 0}/${MAX_LOBBY_PLAYERS}`);
+        if (lobby.state === "in_game" && !gameStarted) {
+          ensureAudio();
+          resetGame();
+        }
+      }
+
+      async function subscribeLobbyRealtime() {
+        if (!supabase || !lobbyId) return;
+        if (lobbySub) await supabase.removeChannel(lobbySub);
+        lobbySub = supabase
+          .channel(`lobby-${lobbyId}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "lobbies", filter: `id=eq.${lobbyId}` }, () => {
+            refreshLobbyState();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "lobby_players", filter: `lobby_id=eq.${lobbyId}` }, () => {
+            refreshLobbyState();
+          })
+          .subscribe();
+      }
+
+      async function createLobbyFlow() {
+        const sb = ensureSupabase();
+        if (!sb) {
+          setLobbyStatus("Set SUPABASE_URL and SUPABASE_ANON_KEY first.", true);
+          return;
+        }
+        await leaveCurrentLobby(true);
+        playerId = getOrCreatePlayerId();
+        const playerName = getPlayerName();
+        localStorage.setItem(PLAYER_NAME_KEY, playerName);
+        const code = randomLobbyCode();
+        const { data: lobby, error: lobbyErr } = await sb
+          .from("lobbies")
+          .insert({ code, host_player_id: playerId, state: "open" })
+          .select("id, code")
+          .single();
+        if (lobbyErr || !lobby) {
+          setLobbyStatus(`Could not create lobby: ${lobbyErr ? lobbyErr.message : "unknown error"}`, true);
+          return;
+        }
+        lobbyId = lobby.id;
+        lobbyCode = lobby.code;
+        const { error: joinSelfErr } = await sb.from("lobby_players").insert({
+          lobby_id: lobbyId,
+          player_id: playerId,
+          name: playerName,
+          character_id: selectedCharacterId,
+          is_ready: true
+        });
+        if (joinSelfErr) {
+          setLobbyStatus(`Created lobby, but failed to join: ${joinSelfErr.message}`, true);
+          return;
+        }
+        showLobbyPanel(true);
+        await subscribeLobbyRealtime();
+        await refreshLobbyState();
+      }
+
+      async function joinLobbyFlow() {
+        const sb = ensureSupabase();
+        if (!sb) {
+          setLobbyStatus("Set SUPABASE_URL and SUPABASE_ANON_KEY first.", true);
+          return;
+        }
+        const code = (joinCodeInput.value || "").trim().toUpperCase();
+        if (code.length !== 6) {
+          setLobbyStatus("Lobby code must have 6 chars.", true);
+          return;
+        }
+        await leaveCurrentLobby(true);
+        playerId = getOrCreatePlayerId();
+        const playerName = getPlayerName();
+        localStorage.setItem(PLAYER_NAME_KEY, playerName);
+        const { data: lobby, error: lobbyLookupErr } = await sb.from("lobbies").select("id, code, state").eq("code", code).single();
+        if (lobbyLookupErr) {
+          setLobbyStatus(`Could not find lobby: ${lobbyLookupErr.message}`, true);
+          return;
+        }
+        if (!lobby || lobby.state !== "open") {
+          setLobbyStatus("Lobby not found or not open.", true);
+          return;
+        }
+        const { data: existing } = await sb.from("lobby_players").select("player_id").eq("lobby_id", lobby.id);
+        if (!existing || existing.length >= MAX_LOBBY_PLAYERS) {
+          setLobbyStatus("Lobby is full.", true);
+          return;
+        }
+        lobbyId = lobby.id;
+        lobbyCode = lobby.code;
+        const { error: joinErr } = await sb.from("lobby_players").upsert(
+          {
+            lobby_id: lobbyId,
+            player_id: playerId,
+            name: playerName,
+            character_id: selectedCharacterId,
+            is_ready: false
+          },
+          { onConflict: "lobby_id,player_id" }
+        );
+        if (joinErr) {
+          setLobbyStatus(`Could not join lobby: ${joinErr.message}`, true);
+          return;
+        }
+        showLobbyPanel(true);
+        await subscribeLobbyRealtime();
+        await refreshLobbyState();
+      }
+
+      function setLoadingProgress(percent, label) {
+        const p = clamp(percent, 0, 100);
+        loadingBarEl.style.width = `${p}%`;
+        loadingPercentEl.textContent = `${Math.floor(p)}%`;
+        if (label) loadingLabelEl.textContent = label;
+      }
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function runLoadingScreen() {
+        mainMenuUI.style.display = "none";
+        loadingUI.classList.remove("hidden");
+        loadingUI.style.display = "flex";
+
+        const steps = [
+          { to: 18, label: "Generating terrain chunks", wait: 220 },
+          { to: 38, label: "Placing obstacles", wait: 230 },
+          { to: 58, label: "Initializing combat systems", wait: 220 },
+          { to: 78, label: "Preparing audio and VFX", wait: 220 },
+          { to: 100, label: "Ready", wait: 180 }
+        ];
+
+        let current = 0;
+        for (const step of steps) {
+          while (current < step.to) {
+            current += 1 + Math.random() * 1.8;
+            setLoadingProgress(Math.min(step.to, current), step.label);
+            // Lightweight warm-up work so load feels meaningful.
+            for (let i = 0; i < 90; i++) {
+              const x = camX + (Math.random() - 0.5) * 1800;
+              const y = camY + (Math.random() - 0.5) * 1800;
+              getTerrainHeight(x, y);
+              getNearbyObstacles(x, y, 240);
+            }
+            await sleep(20);
+          }
+          await sleep(step.wait);
+        }
+
+        loadingUI.classList.add("hidden");
+        await sleep(360);
+        loadingUI.style.display = "none";
+        menuOptionsEl.style.display = "none";
+        menuCharactersEl.style.display = "none";
+        menuMultiplayerEl.style.display = "none";
+        menuHomeEl.style.display = "block";
+        mainMenuUI.style.display = "flex";
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (!supabase || !lobbyId || !playerId) return;
+        supabase.from("lobby_players").delete().eq("lobby_id", lobbyId).eq("player_id", playerId);
+      });
+
+      playerId = getOrCreatePlayerId();
+      renderCharacterMenu();
+      requestAnimationFrame(loop);
+      runLoadingScreen();
+
+      console.log("Vampire Survivors - Time Survival loaded successfully.");
+    })();
+  </script>
+</body>
+</html>
