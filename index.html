@@ -340,6 +340,35 @@
       color: #e6ffe6;
     }
 
+    #touchJoystick {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      border: 2px solid rgba(170, 220, 190, 0.55);
+      background: rgba(8, 22, 12, 0.35);
+      box-shadow: 0 0 16px rgba(0, 0, 0, 0.45) inset;
+      z-index: 25;
+      touch-action: none;
+      user-select: none;
+      display: none;
+    }
+
+    #touchJoystickKnob {
+      position: absolute;
+      left: 43px;
+      top: 43px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(220, 255, 230, 0.8);
+      background: rgba(96, 168, 130, 0.55);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+
     .loading-spinner {
       width: 28px;
       height: 28px;
@@ -358,6 +387,9 @@
 <body>
   <div class="wrap">
     <canvas id="game" width="1200" height="800"></canvas>
+    <div id="touchJoystick" aria-hidden="true">
+      <div id="touchJoystickKnob"></div>
+    </div>
 
     <div id="loadingUI">
       <div class="panel">
@@ -505,6 +537,8 @@
       const readyLobbyBtn = document.getElementById("readyLobbyBtn");
       const startLobbyRunBtn = document.getElementById("startLobbyRunBtn");
       const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
+      const touchJoystickEl = document.getElementById("touchJoystick");
+      const touchJoystickKnobEl = document.getElementById("touchJoystickKnob");
       const loadingUI = document.getElementById("loadingUI");
       const loadingLabelEl = document.getElementById("loadingLabel");
       const loadingBarEl = document.getElementById("loadingBar");
@@ -527,6 +561,9 @@
       let isLobbyHost = false;
       let remotePlayers = new Map();
       let positionBroadcastTimer = 0;
+      let touchMoveX = 0;
+      let touchMoveY = 0;
+      let touchJoystickPointerId = null;
 
       const keys = new Set();
       const movementKeys = new Set([
@@ -546,6 +583,57 @@
       window.addEventListener("keyup", (e) => {
         keys.delete(e.key);
       });
+
+      function updateJoystickKnob() {
+        const max = 40;
+        const px = touchMoveX * max;
+        const py = touchMoveY * max;
+        touchJoystickKnobEl.style.transform = `translate(${px}px, ${py}px)`;
+      }
+
+      function updateTouchVectorFromClient(clientX, clientY) {
+        const rect = touchJoystickEl.getBoundingClientRect();
+        const cx = rect.left + rect.width * 0.5;
+        const cy = rect.top + rect.height * 0.5;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const max = rect.width * 0.34;
+        const mag = Math.hypot(dx, dy);
+        if (mag <= 0.0001) {
+          touchMoveX = 0;
+          touchMoveY = 0;
+        } else {
+          const scale = Math.min(1, max / mag);
+          touchMoveX = (dx * scale) / max;
+          touchMoveY = (dy * scale) / max;
+        }
+        updateJoystickKnob();
+      }
+
+      function setupTouchJoystick() {
+        touchJoystickEl.addEventListener("pointerdown", (e) => {
+          if (touchJoystickPointerId !== null) return;
+          touchJoystickPointerId = e.pointerId;
+          touchJoystickEl.setPointerCapture(e.pointerId);
+          updateTouchVectorFromClient(e.clientX, e.clientY);
+          e.preventDefault();
+        }, { passive: false });
+        touchJoystickEl.addEventListener("pointermove", (e) => {
+          if (e.pointerId !== touchJoystickPointerId) return;
+          updateTouchVectorFromClient(e.clientX, e.clientY);
+          e.preventDefault();
+        }, { passive: false });
+        const clearPointer = (e) => {
+          if (e.pointerId !== touchJoystickPointerId) return;
+          touchJoystickPointerId = null;
+          touchMoveX = 0;
+          touchMoveY = 0;
+          updateJoystickKnob();
+          e.preventDefault();
+        };
+        touchJoystickEl.addEventListener("pointerup", clearPointer, { passive: false });
+        touchJoystickEl.addEventListener("pointercancel", clearPointer, { passive: false });
+      }
 
       const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
       const dist2 = (ax, ay, bx, by) => {
@@ -1775,6 +1863,8 @@
         if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) my += 1;
         if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) mx -= 1;
         if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) mx += 1;
+        mx += touchMoveX;
+        my += touchMoveY;
 
         if (mx !== 0 || my !== 0) {
           const rightBase = rotateVec(1, -1, -camYaw);
@@ -2500,6 +2590,7 @@
       }
 
       function render() {
+        touchJoystickEl.style.display = gameStarted ? "block" : "none";
         if (!gameStarted) {
           drawBackground();
           return;
@@ -3068,6 +3159,8 @@
       });
 
       playerId = getOrCreatePlayerId();
+      setupTouchJoystick();
+      updateJoystickKnob();
       renderCharacterMenu();
       requestAnimationFrame(loop);
       runLoadingScreen();
