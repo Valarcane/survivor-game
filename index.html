@@ -1944,12 +1944,13 @@
             continue;
           }
 
-          let hit = false;
+          const isContinuousBullet = p.kind === "pistol" || p.kind === "sniper" || p.kind === "shotgun";
+          let consumeProjectile = false;
           for (let j = enemies.length - 1; j >= 0; j--) {
             const e = enemies[j];
             const rr = p.r + e.r;
             if (dist2(p.x, p.y, e.x, e.y) <= rr * rr) {
-              hit = true;
+              consumeProjectile = !isContinuousBullet;
               let damageAmount = p.damage;
               if (p.kind === "shotgun") {
                 const d = Math.hypot(player.x - e.x, player.y - e.y);
@@ -1980,13 +1981,13 @@
               }
               if ((p.pierceLeft || 0) > 0) {
                 p.pierceLeft -= 1;
-                hit = false;
+                consumeProjectile = false;
               }
-              break;
+              if (!isContinuousBullet) break;
             }
           }
 
-          if (hit) projectiles.splice(i, 1);
+          if (consumeProjectile) projectiles.splice(i, 1);
         }
 
         const magnetRange = 160;
